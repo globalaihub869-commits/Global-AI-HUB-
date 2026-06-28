@@ -8,9 +8,13 @@
 
 export * from './errorResponse';
 export * from './healthStatus';
+export * from './listNewsParams';
 export * from './listToolsParams';
 export * from './listToolsPricing';
 export * from './listToolsType';
+export * from './newsDigest';
+export * from './newsDigestCategory';
+export * from './newsListResponse';
 export * from './tool';
 export * from './toolListResponse';
 export * from './toolOutputTypesItem';

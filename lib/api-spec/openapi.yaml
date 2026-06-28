@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: tools
     description: AI Tools directory
+  - name: news
+    description: AI News digests
 paths:
   /healthz:
     get:
@@ -93,6 +95,57 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /news:
+    get:
+      operationId: listNews
+      tags: [news]
+      summary: List AI news digests
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Full-text search across title, source, tags and summary
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by news category
+      responses:
+        "200":
+          description: List of news digests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsListResponse"
+
+  /news/{id}:
+    get:
+      operationId: getNewsArticle
+      tags: [news]
+      summary: Get a single news digest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: News digest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsDigest"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -164,6 +217,65 @@ components:
           type: integer
       required:
         - tools
+        - total
+
+    NewsDigest:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+          enum: [Models, Funding, Research, Regulation, Releases, Hardware, Open Source, Industry]
+        source:
+          type: string
+        sourceUrl:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        featured:
+          type: boolean
+        readTimeMinutes:
+          type: integer
+        summary:
+          type: array
+          items:
+            type: string
+          minItems: 3
+          maxItems: 3
+          description: Exactly 3 AI-generated bullet-point summary lines
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - title
+        - category
+        - source
+        - sourceUrl
+        - publishedAt
+        - featured
+        - readTimeMinutes
+        - summary
+        - tags
+
+    NewsListResponse:
+      type: object
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: "#/components/schemas/NewsDigest"
+        total:
+          type: integer
+        featured:
+          $ref: "#/components/schemas/NewsDigest"
+      required:
+        - articles
         - total
 
     ErrorResponse:

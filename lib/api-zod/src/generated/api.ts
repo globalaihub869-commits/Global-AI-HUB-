@@ -72,3 +72,74 @@ export const GetToolResponse = zod.object({
 })
 
 
+/**
+ * @summary List AI news digests
+ */
+export const ListNewsQueryParams = zod.object({
+  "search": zod.coerce.string().optional().describe('Full-text search across title, source, tags and summary'),
+  "category": zod.coerce.string().optional().describe('Filter by news category')
+})
+
+export const listNewsResponseArticlesItemSummaryMin = 3;
+export const listNewsResponseArticlesItemSummaryMax = 3;
+
+export const listNewsResponseFeaturedSummaryMin = 3;
+export const listNewsResponseFeaturedSummaryMax = 3;
+
+
+
+export const ListNewsResponse = zod.object({
+  "articles": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "category": zod.enum(['Models', 'Funding', 'Research', 'Regulation', 'Releases', 'Hardware', 'Open Source', 'Industry']),
+  "source": zod.string(),
+  "sourceUrl": zod.string(),
+  "publishedAt": zod.coerce.date(),
+  "featured": zod.boolean(),
+  "readTimeMinutes": zod.number(),
+  "summary": zod.array(zod.string()).min(listNewsResponseArticlesItemSummaryMin).max(listNewsResponseArticlesItemSummaryMax).describe('Exactly 3 AI-generated bullet-point summary lines'),
+  "tags": zod.array(zod.string())
+})),
+  "total": zod.number(),
+  "featured": zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "category": zod.enum(['Models', 'Funding', 'Research', 'Regulation', 'Releases', 'Hardware', 'Open Source', 'Industry']),
+  "source": zod.string(),
+  "sourceUrl": zod.string(),
+  "publishedAt": zod.coerce.date(),
+  "featured": zod.boolean(),
+  "readTimeMinutes": zod.number(),
+  "summary": zod.array(zod.string()).min(listNewsResponseFeaturedSummaryMin).max(listNewsResponseFeaturedSummaryMax).describe('Exactly 3 AI-generated bullet-point summary lines'),
+  "tags": zod.array(zod.string())
+}).optional()
+})
+
+
+/**
+ * @summary Get a single news digest
+ */
+export const GetNewsArticleParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const getNewsArticleResponseSummaryMin = 3;
+export const getNewsArticleResponseSummaryMax = 3;
+
+
+
+export const GetNewsArticleResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "category": zod.enum(['Models', 'Funding', 'Research', 'Regulation', 'Releases', 'Hardware', 'Open Source', 'Industry']),
+  "source": zod.string(),
+  "sourceUrl": zod.string(),
+  "publishedAt": zod.coerce.date(),
+  "featured": zod.boolean(),
+  "readTimeMinutes": zod.number(),
+  "summary": zod.array(zod.string()).min(getNewsArticleResponseSummaryMin).max(getNewsArticleResponseSummaryMax).describe('Exactly 3 AI-generated bullet-point summary lines'),
+  "tags": zod.array(zod.string())
+})
+
+

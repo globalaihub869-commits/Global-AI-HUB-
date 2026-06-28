@@ -51,6 +51,44 @@ export interface ToolListResponse {
   total: number;
 }
 
+export type NewsDigestCategory = typeof NewsDigestCategory[keyof typeof NewsDigestCategory];
+
+
+export const NewsDigestCategory = {
+  Models: 'Models',
+  Funding: 'Funding',
+  Research: 'Research',
+  Regulation: 'Regulation',
+  Releases: 'Releases',
+  Hardware: 'Hardware',
+  Open_Source: 'Open Source',
+  Industry: 'Industry',
+} as const;
+
+export interface NewsDigest {
+  id: string;
+  title: string;
+  category: NewsDigestCategory;
+  source: string;
+  sourceUrl: string;
+  publishedAt: string;
+  featured: boolean;
+  readTimeMinutes: number;
+  /**
+     * Exactly 3 AI-generated bullet-point summary lines
+     * @minItems 3
+     * @maxItems 3
+     */
+  summary: string[];
+  tags: string[];
+}
+
+export interface NewsListResponse {
+  articles: NewsDigest[];
+  total: number;
+  featured?: NewsDigest;
+}
+
 export interface ErrorResponse {
   error: string;
 }
@@ -94,4 +132,15 @@ export const ListToolsType = {
   Video: 'Video',
   Data: 'Data',
 } as const;
+
+export type ListNewsParams = {
+/**
+ * Full-text search across title, source, tags and summary
+ */
+search?: string;
+/**
+ * Filter by news category
+ */
+category?: string;
+};
 

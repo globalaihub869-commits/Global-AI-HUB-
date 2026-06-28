@@ -18,7 +18,10 @@ import type {
 import type {
   ErrorResponse,
   HealthStatus,
+  ListNewsParams,
   ListToolsParams,
+  NewsDigest,
+  NewsListResponse,
   Tool,
   ToolListResponse
 } from './api.schemas';
@@ -278,6 +281,167 @@ export function useGetTool<TData = Awaited<ReturnType<typeof getTool>>, TError =
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetToolQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListNewsUrl = (params?: ListNewsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/news?${stringifiedParams}` : `/api/news`
+}
+
+/**
+ * @summary List AI news digests
+ */
+export const listNews = async (params?: ListNewsParams, options?: RequestInit): Promise<NewsListResponse> => {
+
+  return customFetch<NewsListResponse>(getListNewsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListNewsQueryKey = (params?: ListNewsParams,) => {
+    return [
+    `/api/news`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListNewsQueryOptions = <TData = Awaited<ReturnType<typeof listNews>>, TError = ErrorType<unknown>>(params?: ListNewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListNewsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listNews>>> = ({ signal }) => listNews(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listNews>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListNewsQueryResult = NonNullable<Awaited<ReturnType<typeof listNews>>>
+export type ListNewsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List AI news digests
+ */
+
+export function useListNews<TData = Awaited<ReturnType<typeof listNews>>, TError = ErrorType<unknown>>(
+ params?: ListNewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListNewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetNewsArticleUrl = (id: string,) => {
+
+
+
+
+  return `/api/news/${id}`
+}
+
+/**
+ * @summary Get a single news digest
+ */
+export const getNewsArticle = async (id: string, options?: RequestInit): Promise<NewsDigest> => {
+
+  return customFetch<NewsDigest>(getGetNewsArticleUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNewsArticleQueryKey = (id: string,) => {
+    return [
+    `/api/news/${id}`
+    ] as const;
+    }
+
+
+export const getGetNewsArticleQueryOptions = <TData = Awaited<ReturnType<typeof getNewsArticle>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNewsArticle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNewsArticleQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNewsArticle>>> = ({ signal }) => getNewsArticle(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNewsArticle>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNewsArticleQueryResult = NonNullable<Awaited<ReturnType<typeof getNewsArticle>>>
+export type GetNewsArticleQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get a single news digest
+ */
+
+export function useGetNewsArticle<TData = Awaited<ReturnType<typeof getNewsArticle>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNewsArticle>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNewsArticleQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
