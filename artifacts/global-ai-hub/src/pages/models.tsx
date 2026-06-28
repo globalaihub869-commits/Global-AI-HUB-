@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ArrowDownAZ, ArrowUpZA } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 const modelsData = [
   { name: "GPT-4o", provider: "OpenAI", type: "Multimodal", context: "128K", open: false, score: 88.7 },
@@ -23,97 +24,109 @@ const modelsData = [
 ];
 
 export default function Models() {
+  const { t } = useLanguage();
   const [sortField, setSortField] = useState<"score" | "name">("score");
   const [sortDesc, setSortDesc] = useState(true);
 
   const sortedModels = [...modelsData].sort((a, b) => {
-    if (sortField === "score") {
-      return sortDesc ? b.score - a.score : a.score - b.score;
-    }
-    return sortDesc 
-      ? b.name.localeCompare(a.name) 
-      : a.name.localeCompare(b.name);
+    if (sortField === "score") return sortDesc ? b.score - a.score : a.score - b.score;
+    return sortDesc ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name);
   });
 
   const handleSort = (field: "score" | "name") => {
-    if (sortField === field) {
-      setSortDesc(!sortDesc);
-    } else {
-      setSortField(field);
-      setSortDesc(true);
-    }
+    if (sortField === field) setSortDesc(!sortDesc);
+    else { setSortField(field); setSortDesc(true); }
   };
+
+  const SortIcon = ({ field }: { field: "score" | "name" }) =>
+    sortField === field
+      ? sortDesc
+        ? <ArrowDownAZ className="inline w-4 h-4 ms-1 text-primary" />
+        : <ArrowUpZA className="inline w-4 h-4 ms-1 text-primary" />
+      : <ArrowDownAZ className="inline w-4 h-4 ms-1 text-white/20" />;
 
   return (
     <div className="min-h-screen pt-24 pb-20">
+      <div className="fixed top-10 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
       <div className="container mx-auto px-4 max-w-6xl">
-        
-        <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4 [text-shadow:0_0_20px_rgba(185,213,255,0.3)]">Models Leaderboard</h1>
-          <p className="text-muted-foreground text-lg">Comparing the top foundation models by benchmark performance and capabilities.</p>
-        </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)]"
-        >
-          <div className="overflow-x-auto">
-            <Table data-testid="models-table">
-              <TableHeader className="bg-white/5">
-                <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="w-[250px] cursor-pointer" onClick={() => handleSort("name")} data-testid="th-name">
-                    <div className="flex items-center gap-2 text-white font-medium">
-                      Model Name {sortField === "name" && (sortDesc ? <ArrowDownAZ className="w-4 h-4 text-primary" /> : <ArrowUpZA className="w-4 h-4 text-primary" />)}
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-white font-medium">Provider</TableHead>
-                  <TableHead className="text-white font-medium">Type</TableHead>
-                  <TableHead className="text-white font-medium">Context</TableHead>
-                  <TableHead className="text-white font-medium">License</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => handleSort("score")} data-testid="th-score">
-                    <div className="flex items-center justify-end gap-2 text-white font-medium">
-                      Avg Score {sortField === "score" && (sortDesc ? <ArrowDownAZ className="w-4 h-4 text-secondary" /> : <ArrowUpZA className="w-4 h-4 text-secondary" />)}
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedModels.map((model, idx) => (
-                  <TableRow key={model.name} className="border-white/10 hover:bg-white/5 transition-colors group" data-testid={`row-model-${model.name.replace(/\s+/g, '-').toLowerCase()}`}>
-                    <TableCell className="font-display font-bold text-white group-hover:text-primary transition-colors">
-                      {model.name}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{model.provider}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="border-white/10 text-xs font-normal">
-                        {model.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-sm">{model.context}</TableCell>
-                    <TableCell>
-                      {model.open ? (
-                        <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20">Open Source</Badge>
-                      ) : (
-                        <Badge variant="secondary" className="bg-white/10 text-muted-foreground hover:bg-white/20">Proprietary</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono font-bold text-secondary [text-shadow:0_0_10px_rgba(34,211,238,0.4)] text-lg">
-                        {model.score.toFixed(1)}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
+          <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4 [text-shadow:0_0_20px_rgba(185,213,255,0.3)]" data-testid="models-title">
+            {t("models.title")}
+          </h1>
+          <p className="text-muted-foreground text-lg" data-testid="models-subtitle">{t("models.subtitle")}</p>
         </motion.div>
 
-        <div className="mt-8 text-center text-sm text-muted-foreground">
-          Scores are aggregated averages from major public benchmarks (MMLU, HumanEval, MATH, etc.) or Elo ratings where applicable.
-        </div>
-
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-sm overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)]"
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="border-b border-white/10 hover:bg-transparent">
+                <TableHead className="text-muted-foreground font-semibold w-8 ps-4">#</TableHead>
+                <TableHead
+                  className="text-muted-foreground font-semibold cursor-pointer hover:text-white transition-colors select-none"
+                  onClick={() => handleSort("name")}
+                  data-testid="sort-by-name"
+                >
+                  {t("models.model")}<SortIcon field="name" />
+                </TableHead>
+                <TableHead className="text-muted-foreground font-semibold hidden sm:table-cell">{t("models.provider")}</TableHead>
+                <TableHead className="text-muted-foreground font-semibold hidden md:table-cell">{t("models.type")}</TableHead>
+                <TableHead className="text-muted-foreground font-semibold hidden lg:table-cell">{t("models.context")}</TableHead>
+                <TableHead className="text-muted-foreground font-semibold hidden md:table-cell">{t("models.openSource")}</TableHead>
+                <TableHead
+                  className="text-muted-foreground font-semibold cursor-pointer hover:text-white transition-colors select-none text-end pe-4"
+                  onClick={() => handleSort("score")}
+                  data-testid="sort-by-score"
+                >
+                  {t("models.score")}<SortIcon field="score" />
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedModels.map((model, idx) => (
+                <TableRow
+                  key={model.name}
+                  className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                  data-testid={`model-row-${model.name.replace(/\s+/g, "-").toLowerCase()}`}
+                >
+                  <TableCell className="text-muted-foreground/50 text-sm font-mono ps-4">{idx + 1}</TableCell>
+                  <TableCell className="font-display font-semibold text-white">{model.name}</TableCell>
+                  <TableCell className="text-muted-foreground hidden sm:table-cell">{model.provider}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <Badge variant="outline" className={`text-xs border ${
+                      model.type === "LLM" ? "border-primary/30 text-primary bg-primary/5" :
+                      model.type === "Image" ? "border-secondary/30 text-secondary bg-secondary/5" :
+                      model.type === "Video" ? "border-orange-500/30 text-orange-400 bg-orange-500/5" :
+                      model.type === "Audio" ? "border-yellow-500/30 text-yellow-400 bg-yellow-500/5" :
+                      "border-white/20 text-muted-foreground"
+                    }`}>
+                      {model.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-sm hidden lg:table-cell">{model.context}</TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium ${model.open ? "text-emerald-400" : "text-muted-foreground/50"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${model.open ? "bg-emerald-400" : "bg-white/20"}`} />
+                      {model.open ? t("models.yes") : t("models.no")}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-end pe-4">
+                    <span className={`font-mono font-bold text-lg ${
+                      model.score >= 95 ? "text-primary [text-shadow:0_0_8px_rgba(168,85,247,0.6)]" :
+                      model.score >= 88 ? "text-secondary" :
+                      model.score >= 80 ? "text-white" : "text-muted-foreground"
+                    }`}>
+                      {model.score.toFixed(1)}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </motion.div>
       </div>
     </div>
   );

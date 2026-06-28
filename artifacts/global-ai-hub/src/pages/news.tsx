@@ -5,27 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Clock,
-  ExternalLink,
-  Search,
-  X,
-  Dot,
-  Newspaper,
-  TrendingUp,
-  Cpu,
-  DollarSign,
-  FlaskConical,
-  Scale,
-  Package,
-  HardDrive,
-  BookOpen,
-  Building2,
-  Zap,
-  AlertCircle,
-  ChevronRight,
+  Clock, ExternalLink, Search, X, Dot, Newspaper, TrendingUp, Cpu, DollarSign,
+  FlaskConical, Scale, Package, HardDrive, BookOpen, Building2, Zap, AlertCircle, ChevronRight,
 } from "lucide-react";
 import { useListNews } from "@workspace/api-client-react";
 import type { NewsDigest } from "@workspace/api-client-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 const CATEGORIES = [
   { label: "All", value: "All", icon: Newspaper },
@@ -57,22 +42,14 @@ function formatRelativeDate(iso: string): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
+  if (days < 7) return `${days}d ago`;
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function CategoryChip({
-  label,
-  value,
-  icon: Icon,
-  active,
-  onClick,
+  label, value, icon: Icon, active, onClick,
 }: {
-  label: string;
-  value: string;
-  icon: React.ElementType;
-  active: boolean;
-  onClick: () => void;
+  label: string; value: string; icon: React.ElementType; active: boolean; onClick: () => void;
 }) {
   return (
     <button
@@ -90,78 +67,48 @@ function CategoryChip({
   );
 }
 
-/* ── Featured Article Hero ───────────────────────────────── */
 function FeaturedCard({ article }: { article: NewsDigest }) {
+  const { t } = useLanguage();
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55 }}
-      className="mb-10"
-      data-testid="featured-article"
-    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="mb-10" data-testid="featured-article">
       <div className="relative rounded-2xl overflow-hidden p-[1px] bg-gradient-to-br from-primary/50 via-secondary/20 to-primary/10 shadow-[0_0_40px_rgba(168,85,247,0.2)]">
         <div className="bg-[hsl(240,15%,7%)] rounded-2xl p-7 md:p-10">
-          {/* Top row */}
           <div className="flex flex-wrap items-center gap-3 mb-5">
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 bg-primary/10 rounded-full px-3 py-1">
-              <TrendingUp className="w-3 h-3" />
-              Featured Story
+              <TrendingUp className="w-3 h-3" />{t("news.featured")}
             </span>
-            <Badge
-              variant="outline"
-              className={`text-xs border ${CATEGORY_COLORS[article.category] ?? "text-muted-foreground border-white/10"}`}
-            >
+            <Badge variant="outline" className={`text-xs border ${CATEGORY_COLORS[article.category] ?? "text-muted-foreground border-white/10"}`}>
               {article.category}
             </Badge>
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatRelativeDate(article.publishedAt)}
-            </span>
-            <span className="text-xs text-muted-foreground">{article.readTimeMinutes} min read</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{formatRelativeDate(article.publishedAt)}</span>
+            <span className="text-xs text-muted-foreground">{article.readTimeMinutes} {t("news.minRead")}</span>
           </div>
 
-          {/* Title */}
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-6 leading-snug">
-            {article.title}
-          </h2>
+          <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-6 leading-snug">{article.title}</h2>
 
-          {/* 3-bullet AI summary */}
           <div className="mb-6">
             <p className="text-xs text-secondary font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
-              <Zap className="w-3 h-3" />
-              AI Summary — 3 Key Points
+              <Zap className="w-3 h-3" />{t("news.aiSummary")} — 3 Key Points
             </p>
             <ul className="flex flex-col gap-3">
               {(article.summary as [string, string, string]).map((bullet, i) => (
                 <li key={i} className="flex gap-3 items-start" data-testid={`featured-bullet-${i}`}>
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-bold flex items-center justify-center mt-0.5">
-                    {i + 1}
-                  </span>
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
                   <p className="text-sm text-muted-foreground leading-relaxed">{bullet}</p>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Footer */}
           <div className="flex items-center justify-between pt-5 border-t border-white/8">
             <div className="flex flex-wrap gap-1.5">
               {article.tags.slice(0, 3).map((tag) => (
-                <span key={tag} className="text-xs text-muted-foreground/60 bg-white/[0.04] border border-white/[0.07] rounded px-2 py-0.5">
-                  {tag}
-                </span>
+                <span key={tag} className="text-xs text-muted-foreground/60 bg-white/[0.04] border border-white/[0.07] rounded px-2 py-0.5">{tag}</span>
               ))}
             </div>
-            <a
-              href={article.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid="featured-source-link"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-white bg-primary/10 hover:bg-primary border border-primary/30 hover:border-primary rounded-full px-4 py-2 transition-all"
-            >
-              Read on {article.source}
-              <ExternalLink className="w-3.5 h-3.5" />
+            <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" data-testid="featured-source-link"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-white bg-primary/10 hover:bg-primary border border-primary/30 hover:border-primary rounded-full px-4 py-2 transition-all">
+              {t("news.source")}: {article.source}<ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
@@ -170,8 +117,8 @@ function FeaturedCard({ article }: { article: NewsDigest }) {
   );
 }
 
-/* ── Regular Digest Card ──────────────────────────────────── */
 function DigestCard({ article, idx }: { article: NewsDigest; idx: number }) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -184,85 +131,49 @@ function DigestCard({ article, idx }: { article: NewsDigest; idx: number }) {
       data-testid={`news-card-${article.id}`}
       className="group rounded-2xl border border-white/8 bg-[hsl(240,15%,8%)] hover:border-primary/30 transition-all hover:shadow-[0_0_24px_rgba(168,85,247,0.12)] overflow-hidden"
     >
-      {/* Card header — always visible */}
       <div className="p-5 md:p-6">
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <Badge
-            variant="outline"
-            className={`text-xs border ${CATEGORY_COLORS[article.category] ?? "text-muted-foreground border-white/10"}`}
-            data-testid={`badge-category-${article.id}`}
-          >
+          <Badge variant="outline" className={`text-xs border ${CATEGORY_COLORS[article.category] ?? "text-muted-foreground border-white/10"}`} data-testid={`badge-category-${article.id}`}>
             {article.category}
           </Badge>
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {formatRelativeDate(article.publishedAt)}
-          </span>
-          <span className="text-xs text-muted-foreground/50">
-            <Dot className="inline w-3 h-3" />
-            {article.readTimeMinutes} min read
-          </span>
+          <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{formatRelativeDate(article.publishedAt)}</span>
+          <span className="text-xs text-muted-foreground/50"><Dot className="inline w-3 h-3" />{article.readTimeMinutes} {t("news.minRead")}</span>
         </div>
 
-        <h3 className="text-lg md:text-xl font-display font-semibold text-white group-hover:text-primary transition-colors leading-snug mb-2">
-          {article.title}
-        </h3>
+        <h3 className="text-lg md:text-xl font-display font-semibold text-white group-hover:text-primary transition-colors leading-snug mb-2">{article.title}</h3>
+        <p className="text-xs text-muted-foreground/70 font-medium mb-4">via <span className="text-muted-foreground">{article.source}</span></p>
 
-        <p className="text-xs text-muted-foreground/70 font-medium mb-4">
-          via <span className="text-muted-foreground">{article.source}</span>
-        </p>
-
-        {/* ── AI SUMMARY — 3 bullets ─────────────────────────── */}
         <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
           <p className="text-[11px] text-secondary font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
-            <Zap className="w-3 h-3" />
-            AI Summary
+            <Zap className="w-3 h-3" />{t("news.aiSummary")}
           </p>
           <ul className="flex flex-col gap-2.5">
             {(article.summary as [string, string, string]).map((bullet, i) => (
-              <li
-                key={i}
-                className="flex gap-2.5 items-start text-sm text-muted-foreground leading-relaxed"
-                data-testid={`bullet-${article.id}-${i}`}
-              >
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 border border-primary/25 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">
-                  {i + 1}
-                </span>
-                {/* Clamp last 2 bullets when collapsed on mobile */}
-                <span className={!expanded && i > 0 ? "line-clamp-2 md:line-clamp-none" : ""}>
-                  {bullet}
-                </span>
+              <li key={i} className="flex gap-2.5 items-start text-sm text-muted-foreground leading-relaxed" data-testid={`bullet-${article.id}-${i}`}>
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 border border-primary/25 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                <span className={!expanded && i > 0 ? "line-clamp-2 md:line-clamp-none" : ""}>{bullet}</span>
               </li>
             ))}
           </ul>
-          {/* Expand toggle on mobile */}
           <button
             onClick={() => setExpanded((v) => !v)}
             className="mt-3 text-[11px] text-muted-foreground/60 hover:text-primary transition-colors md:hidden"
             data-testid={`btn-expand-${article.id}`}
           >
-            {expanded ? "Show less" : "Show full summary"}
+            {expanded ? t("news.showLess") : t("news.showFull")}
           </button>
         </div>
       </div>
 
-      {/* Card footer */}
       <div className="flex items-center justify-between px-5 md:px-6 py-3 border-t border-white/[0.06] bg-white/[0.015]">
         <div className="flex flex-wrap gap-1.5">
           {article.tags.slice(0, 2).map((tag) => (
-            <span key={tag} className="text-[11px] text-muted-foreground/50 bg-white/[0.03] border border-white/[0.06] rounded px-2 py-0.5">
-              {tag}
-            </span>
+            <span key={tag} className="text-[11px] text-muted-foreground/50 bg-white/[0.03] border border-white/[0.06] rounded px-2 py-0.5">{tag}</span>
           ))}
         </div>
-        <a
-          href={article.sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid={`source-link-${article.id}`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors group/link"
-        >
-          Source
+        <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" data-testid={`source-link-${article.id}`}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors group/link">
+          {t("news.source")}
           <ExternalLink className="w-3.5 h-3.5 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5 transition-transform" />
         </a>
       </div>
@@ -270,7 +181,6 @@ function DigestCard({ article, idx }: { article: NewsDigest; idx: number }) {
   );
 }
 
-/* ── Skeleton ─────────────────────────────────────────────── */
 function DigestCardSkeleton() {
   return (
     <div className="rounded-2xl border border-white/8 bg-[hsl(240,15%,8%)] p-5 md:p-6 flex flex-col gap-4">
@@ -293,71 +203,54 @@ function DigestCardSkeleton() {
   );
 }
 
-/* ── Page ─────────────────────────────────────────────────── */
 export default function News() {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
 
   const { data, isLoading, isError, refetch } = useListNews(
-    {
-      search: search || undefined,
-      category: category !== "All" ? category : undefined,
-    },
+    { search: search || undefined, category: category !== "All" ? category : undefined },
     { query: { queryKey: ["listNews", search, category] } },
   );
 
   const articles = data?.articles ?? [];
   const featured = data?.featured;
-
-  // Don't show featured in main list
   const mainArticles = articles.filter((a) => !a.featured || category !== "All" || search);
 
   return (
     <div className="min-h-screen pt-24 pb-20">
-      {/* Ambient glow */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-primary/10 blur-[130px] rounded-full pointer-events-none -z-10" />
 
       <div className="container mx-auto px-4 max-w-4xl">
 
         {/* PAGE HEADER */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-10 pb-8 border-b border-white/8"
-        >
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-10 pb-8 border-b border-white/8">
           <div className="flex items-center gap-3 mb-4">
             <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex rounded-full h-3 w-3 bg-primary shadow-[0_0_8px_rgba(168,85,247,0.9)]" />
             </span>
-            <span className="text-xs text-primary font-semibold uppercase tracking-widest">Live Feed</span>
+            <span className="text-xs text-primary font-semibold uppercase tracking-widest">{t("news.liveFeed")}</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-3 [text-shadow:0_0_30px_rgba(168,85,247,0.2)]">
-            AI News Hub
+          <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-3 [text-shadow:0_0_30px_rgba(168,85,247,0.2)]" data-testid="news-title">
+            {t("news.title")}
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">
-            Every story distilled into exactly 3 bullet points — the signal, not the noise. Each digest links directly to the original source.
-          </p>
+          <p className="text-muted-foreground text-lg max-w-2xl">{t("news.subtitle")}</p>
         </motion.div>
 
         {/* SEARCH + FILTERS */}
         <div className="flex flex-col gap-4 mb-8">
           <div className="relative max-w-lg">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search news, topics, or sources…"
+              placeholder={t("news.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-11 pr-10 h-11 bg-white/5 border-white/10 focus:border-primary focus:shadow-[0_0_15px_rgba(168,85,247,0.2)] placeholder:text-muted-foreground/50 transition-all"
+              className="ps-11 pe-10 h-11 bg-white/5 border-white/10 focus:border-primary focus:shadow-[0_0_15px_rgba(168,85,247,0.2)] placeholder:text-muted-foreground/50 transition-all"
               data-testid="input-search-news"
             />
             {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
-                data-testid="btn-clear-search"
-              >
+              <button onClick={() => setSearch("")} className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white" data-testid="btn-clear-search">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -365,14 +258,7 @@ export default function News() {
 
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map(({ label, value, icon }) => (
-              <CategoryChip
-                key={value}
-                label={label}
-                value={value}
-                icon={icon}
-                active={category === value}
-                onClick={() => setCategory(value)}
-              />
+              <CategoryChip key={value} label={label} value={value} icon={icon} active={category === value} onClick={() => setCategory(value)} />
             ))}
           </div>
         </div>
@@ -384,19 +270,16 @@ export default function News() {
               <span className="inline-block w-28 h-4 rounded bg-white/5 animate-pulse" />
             ) : (
               <>
-                <span className="text-white font-semibold">{data?.total ?? 0}</span> article{data?.total !== 1 ? "s" : ""}
-                {category !== "All" && <> in <span className="text-primary">{category}</span></>}
-                {search && <> matching <span className="text-primary">"{search}"</span></>}
+                <span className="text-white font-semibold">{data?.total ?? 0}</span> {t("news.articles")}
+                {category !== "All" && <> {t("news.in")} <span className="text-primary">{category}</span></>}
+                {search && <> {t("news.matching")} <span className="text-primary">"{search}"</span></>}
               </>
             )}
           </p>
           {(category !== "All" || search) && (
-            <button
-              onClick={() => { setSearch(""); setCategory("All"); }}
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-white underline underline-offset-2"
-              data-testid="btn-clear-filters"
-            >
-              <X className="w-3 h-3" /> Clear
+            <button onClick={() => { setSearch(""); setCategory("All"); }}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-white underline underline-offset-2" data-testid="btn-clear-filters">
+              <X className="w-3 h-3" /> {t("news.clear")}
             </button>
           )}
         </div>
@@ -407,19 +290,16 @@ export default function News() {
             <AlertCircle className="w-10 h-10 text-destructive mb-4" />
             <p className="text-white font-semibold mb-2">Failed to load news</p>
             <p className="text-muted-foreground text-sm mb-5">Check your connection and try again.</p>
-            <Button onClick={() => refetch()} data-testid="btn-retry">Retry</Button>
+            <Button onClick={() => refetch()} data-testid="btn-retry">{t("common.retry")}</Button>
           </div>
         )}
 
-        {/* CONTENT */}
         {!isError && (
           <>
-            {/* Featured hero — only when no filters active */}
             {!isLoading && featured && category === "All" && !search && (
               <FeaturedCard article={featured} />
             )}
 
-            {/* Main article list */}
             <AnimatePresence mode="popLayout">
               {isLoading ? (
                 <div className="flex flex-col gap-5" data-testid="news-skeleton-list">
@@ -427,50 +307,33 @@ export default function News() {
                 </div>
               ) : mainArticles.length > 0 ? (
                 <motion.div layout className="flex flex-col gap-5">
-                  {mainArticles.map((article, idx) => (
-                    <DigestCard key={article.id} article={article} idx={idx} />
-                  ))}
+                  {mainArticles.map((article, idx) => <DigestCard key={article.id} article={article} idx={idx} />)}
                 </motion.div>
               ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col items-center py-24 text-center"
-                  data-testid="empty-news-state"
-                >
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center py-24 text-center" data-testid="empty-news-state">
                   <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5">
                     <Newspaper className="w-7 h-7 text-primary" />
                   </div>
-                  <h3 className="text-xl font-display font-bold text-white mb-2">No articles found</h3>
-                  <p className="text-muted-foreground max-w-sm mb-6">Try a different search term or category.</p>
+                  <h3 className="text-xl font-display font-bold text-white mb-2">{t("news.emptyTitle")}</h3>
+                  <p className="text-muted-foreground max-w-sm mb-6">{t("news.emptyText")}</p>
                   <Button onClick={() => { setSearch(""); setCategory("All"); }} className="gap-2" data-testid="btn-clear-filters-empty">
-                    View all news <ChevronRight className="w-4 h-4" />
+                    {t("news.viewAll")} <ChevronRight className="w-4 h-4" />
                   </Button>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Bottom promo */}
             {!isLoading && mainArticles.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mt-14 p-[1px] rounded-2xl bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/10"
-              >
+              <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                className="mt-14 p-[1px] rounded-2xl bg-gradient-to-r from-secondary/40 via-primary/30 to-secondary/10">
                 <div className="bg-[hsl(240,15%,7%)] rounded-2xl p-7 md:p-9 flex flex-col md:flex-row items-center justify-between gap-5">
                   <div>
-                    <h3 className="text-xl font-display font-bold text-white mb-1">Get digests in your inbox</h3>
-                    <p className="text-muted-foreground text-sm">Weekly AI news — always 3 bullets, always sourced.</p>
+                    <h3 className="text-xl font-display font-bold text-white mb-1">{t("news.newsletterTitle")}</h3>
+                    <p className="text-muted-foreground text-sm">{t("news.newsletterText")}</p>
                   </div>
                   <a href="/#newsletter">
-                    <Button
-                      size="lg"
-                      className="rounded-full whitespace-nowrap bg-secondary text-black font-semibold hover:bg-secondary/80 shadow-[0_0_20px_rgba(34,211,238,0.35)] hover:shadow-[0_0_35px_rgba(34,211,238,0.55)] transition-all"
-                      data-testid="btn-news-newsletter"
-                    >
-                      Join Newsletter
-                      <ChevronRight className="ml-2 w-4 h-4" />
+                    <Button size="lg" className="rounded-full whitespace-nowrap bg-secondary text-black font-semibold hover:bg-secondary/80 shadow-[0_0_20px_rgba(34,211,238,0.35)] hover:shadow-[0_0_35px_rgba(34,211,238,0.55)] transition-all" data-testid="btn-news-newsletter">
+                      {t("news.joinNewsletter")}<ChevronRight className="ms-2 w-4 h-4" />
                     </Button>
                   </a>
                 </div>
