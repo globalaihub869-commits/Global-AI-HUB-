@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { Tool } from './tool';
 
-export interface HealthStatus {
-  status: string;
+export interface ToolListResponse {
+  tools: Tool[];
+  total: number;
 }

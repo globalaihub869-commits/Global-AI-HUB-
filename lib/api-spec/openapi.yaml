@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: tools
+    description: AI Tools directory
 paths:
   /healthz:
     get:
@@ -24,6 +26,73 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /tools:
+    get:
+      operationId: listTools
+      tags: [tools]
+      summary: List AI tools
+      description: Returns the full list of AI tools with optional search and filter query params
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Full-text search across name and description
+        - name: domain
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by domain category (e.g. LLMs, Code AI)
+        - name: pricing
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [Free, Freemium, Premium]
+          description: Filter by pricing tier
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [Text, Image, Audio, Code, Video, Data]
+          description: Filter by output type
+      responses:
+        "200":
+          description: List of AI tools
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolListResponse"
+
+  /tools/{id}:
+    get:
+      operationId: getTool
+      tags: [tools]
+      summary: Get a single AI tool
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: AI tool details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tool"
+        "404":
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +103,73 @@ components:
       required:
         - status
 
+    Tool:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        domain:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        pricing:
+          type: string
+          enum: [Free, Freemium, Premium]
+        outputTypes:
+          type: array
+          items:
+            type: string
+            enum: [Text, Image, Audio, Code, Video, Data]
+        rating:
+          type: number
+        users:
+          type: string
+        verified:
+          type: boolean
+        trending:
+          type: boolean
+        url:
+          type: string
+        accentColor:
+          type: string
+      required:
+        - id
+        - name
+        - description
+        - domain
+        - tags
+        - pricing
+        - outputTypes
+        - rating
+        - users
+        - verified
+        - trending
+        - url
+        - accentColor
+
+    ToolListResponse:
+      type: object
+      properties:
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tool"
+        total:
+          type: integer
+      required:
+        - tools
+        - total
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
