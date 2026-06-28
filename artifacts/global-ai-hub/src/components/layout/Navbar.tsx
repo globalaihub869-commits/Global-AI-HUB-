@@ -60,10 +60,10 @@ export default function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10 transition-colors" data-testid="nav-btn-submit">
+          <Button variant="outline" className="rounded-full border-primary/50 text-primary hover:bg-primary/10 transition-colors" data-testid="nav-btn-submit">
             Submit Tool
           </Button>
-          <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] transition-all" data-testid="nav-btn-start">
+          <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] transition-all" data-testid="nav-btn-start">
             Get Started
           </Button>
         </div>
@@ -94,10 +94,10 @@ export default function Navbar() {
             </Link>
           ))}
           <div className="flex flex-col gap-2 pt-4 border-t border-white/5">
-            <Button variant="outline" className="w-full border-primary/50 text-primary">
+            <Button variant="outline" className="w-full rounded-full border-primary/50 text-primary">
               Submit Tool
             </Button>
-            <Button className="w-full bg-primary text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+            <Button className="w-full rounded-full bg-primary text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]">
               Get Started
             </Button>
           </div>
