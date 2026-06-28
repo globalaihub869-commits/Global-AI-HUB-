@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Global AI Hub"
+version = "1.0.0"
+id = "artifacts/global-ai-hub"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20640
+
+[services.development]
+run = "pnpm --filter @workspace/global-ai-hub run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/global-ai-hub", "run", "build" ]
+publicDir = "artifacts/global-ai-hub/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20640"
+BASE_PATH = "/"
