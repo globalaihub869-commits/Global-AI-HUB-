@@ -1,132 +1,765 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Search, Filter, ExternalLink, Zap, Star } from "lucide-react";
+import {
+  Search,
+  ExternalLink,
+  Zap,
+  Star,
+  ShieldCheck,
+  X,
+  SlidersHorizontal,
+  TrendingUp,
+  Brain,
+  Code2,
+  Image as ImageIcon,
+  Mic,
+  Bot,
+  Megaphone,
+  Palette,
+  BarChart2,
+  Globe,
+  ChevronRight,
+} from "lucide-react";
 
-const toolsData = [
-  { name: "ChatGPT", category: "LLMs", desc: "OpenAI's flagship conversational AI model, capable of complex reasoning, coding, and creative writing.", popular: true },
-  { name: "Claude", category: "LLMs", desc: "Anthropic's helpful, honest, and harmless assistant with a massive context window for document analysis.", popular: true },
-  { name: "Midjourney", category: "Image Gen", desc: "Incredible AI image generator producing hyper-realistic and artistic visuals from text prompts.", popular: true },
-  { name: "Cursor", category: "Code AI", desc: "The AI-first code editor that deeply understands your codebase and accelerates development.", popular: true },
-  { name: "Gemini", category: "LLMs", desc: "Google's most capable and general model, built from the ground up to be multimodal.", popular: false },
-  { name: "Stable Diffusion", category: "Image Gen", desc: "Open-source image generation model that runs locally and offers infinite customization.", popular: false },
-  { name: "GitHub Copilot", category: "Code AI", desc: "Your AI pair programmer that suggests code and entire functions in real-time.", popular: true },
-  { name: "Perplexity", category: "Agents", desc: "AI-powered search engine that provides cited answers and conversational discovery.", popular: true },
-  { name: "ElevenLabs", category: "Voice AI", desc: "The most realistic AI voice generator and text-to-speech software available.", popular: false },
-  { name: "Runway", category: "Image Gen", desc: "Advance video generation and editing with Gen-2, pushing the boundaries of AI video.", popular: false },
-  { name: "Suno", category: "Voice AI", desc: "Make a song about anything. AI music generation with full vocals and instrumentation.", popular: false },
-  { name: "Mistral", category: "LLMs", desc: "Powerful, open-weight language models from Europe with exceptional efficiency.", popular: false },
+type Pricing = "Free" | "Freemium" | "Premium";
+type ToolType = "Text" | "Image" | "Audio" | "Code" | "Video" | "Data";
+type Domain = "LLMs" | "Code AI" | "Image Gen" | "Voice AI" | "Agents" | "Marketing" | "Design" | "Analytics" | "Productivity";
+
+interface Tool {
+  name: string;
+  domain: Domain;
+  type: ToolType[];
+  pricing: Pricing;
+  desc: string;
+  rating: number;
+  users: string;
+  verified: boolean;
+  trending: boolean;
+  url: string;
+  accentColor: string;
+}
+
+const tools: Tool[] = [
+  {
+    name: "ChatGPT",
+    domain: "LLMs",
+    type: ["Text"],
+    pricing: "Freemium",
+    desc: "OpenAI's flagship conversational AI. Complex reasoning, coding, creative writing, and image analysis in one powerful interface.",
+    rating: 4.9,
+    users: "200M+",
+    verified: true,
+    trending: true,
+    url: "https://chat.openai.com",
+    accentColor: "rgba(16,163,127,0.6)",
+  },
+  {
+    name: "Claude",
+    domain: "LLMs",
+    type: ["Text"],
+    pricing: "Freemium",
+    desc: "Anthropic's safe, helpful assistant with a 200K context window — ideal for document analysis, research, and nuanced writing.",
+    rating: 4.9,
+    users: "50M+",
+    verified: true,
+    trending: true,
+    url: "https://claude.ai",
+    accentColor: "rgba(212,160,86,0.6)",
+  },
+  {
+    name: "Gemini",
+    domain: "LLMs",
+    type: ["Text", "Image"],
+    pricing: "Freemium",
+    desc: "Google's most capable multimodal model. Natively understands text, images, audio, video, and code from the ground up.",
+    rating: 4.7,
+    users: "80M+",
+    verified: true,
+    trending: false,
+    url: "https://gemini.google.com",
+    accentColor: "rgba(66,133,244,0.6)",
+  },
+  {
+    name: "Mistral",
+    domain: "LLMs",
+    type: ["Text"],
+    pricing: "Freemium",
+    desc: "Powerful open-weight language models from Europe with exceptional efficiency and strong multilingual capabilities.",
+    rating: 4.6,
+    users: "10M+",
+    verified: false,
+    trending: false,
+    url: "https://mistral.ai",
+    accentColor: "rgba(255,122,0,0.6)",
+  },
+  {
+    name: "Perplexity",
+    domain: "Agents",
+    type: ["Text"],
+    pricing: "Freemium",
+    desc: "AI-powered search engine delivering cited, conversational answers in real-time. The future of research and discovery.",
+    rating: 4.8,
+    users: "30M+",
+    verified: true,
+    trending: true,
+    url: "https://perplexity.ai",
+    accentColor: "rgba(33,180,201,0.6)",
+  },
+  {
+    name: "Midjourney",
+    domain: "Image Gen",
+    type: ["Image"],
+    pricing: "Premium",
+    desc: "The gold standard for AI art generation. Produces stunning hyper-realistic and artistic visuals from text prompts.",
+    rating: 4.9,
+    users: "20M+",
+    verified: true,
+    trending: true,
+    url: "https://midjourney.com",
+    accentColor: "rgba(168,85,247,0.6)",
+  },
+  {
+    name: "Stable Diffusion",
+    domain: "Image Gen",
+    type: ["Image"],
+    pricing: "Free",
+    desc: "Open-source image generation model that runs locally. Infinite customization via LoRA, ControlNet, and community models.",
+    rating: 4.7,
+    users: "15M+",
+    verified: false,
+    trending: false,
+    url: "https://stability.ai",
+    accentColor: "rgba(239,68,68,0.6)",
+  },
+  {
+    name: "DALL·E 3",
+    domain: "Image Gen",
+    type: ["Image"],
+    pricing: "Premium",
+    desc: "OpenAI's image generation model with superior prompt adherence. Create photorealistic and illustrated visuals at scale.",
+    rating: 4.8,
+    users: "40M+",
+    verified: true,
+    trending: false,
+    url: "https://openai.com/dall-e-3",
+    accentColor: "rgba(16,163,127,0.6)",
+  },
+  {
+    name: "Runway",
+    domain: "Image Gen",
+    type: ["Video", "Image"],
+    pricing: "Freemium",
+    desc: "Leading AI video generation and editing suite. Gen-3 Alpha pushes the boundaries of what AI-generated video can be.",
+    rating: 4.7,
+    users: "5M+",
+    verified: true,
+    trending: true,
+    url: "https://runwayml.com",
+    accentColor: "rgba(249,115,22,0.6)",
+  },
+  {
+    name: "Cursor",
+    domain: "Code AI",
+    type: ["Code"],
+    pricing: "Freemium",
+    desc: "The AI-first code editor. Understands your entire codebase and accelerates development with inline generation and chat.",
+    rating: 4.9,
+    users: "8M+",
+    verified: true,
+    trending: true,
+    url: "https://cursor.com",
+    accentColor: "rgba(139,92,246,0.6)",
+  },
+  {
+    name: "GitHub Copilot",
+    domain: "Code AI",
+    type: ["Code"],
+    pricing: "Premium",
+    desc: "Your AI pair programmer, integrated directly in VS Code, JetBrains, and more. Suggests code and entire functions in real-time.",
+    rating: 4.8,
+    users: "50M+",
+    verified: true,
+    trending: false,
+    url: "https://github.com/features/copilot",
+    accentColor: "rgba(51,51,51,0.8)",
+  },
+  {
+    name: "Tabnine",
+    domain: "Code AI",
+    type: ["Code"],
+    pricing: "Freemium",
+    desc: "Privacy-first AI code assistant that learns your codebase. Supports 80+ programming languages with on-device inference.",
+    rating: 4.5,
+    users: "3M+",
+    verified: false,
+    trending: false,
+    url: "https://tabnine.com",
+    accentColor: "rgba(59,130,246,0.6)",
+  },
+  {
+    name: "ElevenLabs",
+    domain: "Voice AI",
+    type: ["Audio"],
+    pricing: "Freemium",
+    desc: "The most realistic AI voice generator. Clone any voice, produce studio-quality narration, and build voice applications via API.",
+    rating: 4.9,
+    users: "12M+",
+    verified: true,
+    trending: true,
+    url: "https://elevenlabs.io",
+    accentColor: "rgba(250,204,21,0.6)",
+  },
+  {
+    name: "Suno",
+    domain: "Voice AI",
+    type: ["Audio"],
+    pricing: "Freemium",
+    desc: "Make a song about anything. Full-length AI music generation with vocals, instrumentation, and custom lyrics.",
+    rating: 4.7,
+    users: "6M+",
+    verified: true,
+    trending: true,
+    url: "https://suno.ai",
+    accentColor: "rgba(236,72,153,0.6)",
+  },
+  {
+    name: "Jasper",
+    domain: "Marketing",
+    type: ["Text"],
+    pricing: "Premium",
+    desc: "AI marketing platform for brands and teams. Generate on-brand copy, blog posts, ad creatives, and SEO content at scale.",
+    rating: 4.6,
+    users: "100K+",
+    verified: true,
+    trending: false,
+    url: "https://jasper.ai",
+    accentColor: "rgba(239,68,68,0.6)",
+  },
+  {
+    name: "Copy.ai",
+    domain: "Marketing",
+    type: ["Text"],
+    pricing: "Freemium",
+    desc: "AI-powered copywriting for marketers. Instantly generate emails, ads, social posts, and product descriptions.",
+    rating: 4.4,
+    users: "500K+",
+    verified: false,
+    trending: false,
+    url: "https://copy.ai",
+    accentColor: "rgba(99,102,241,0.6)",
+  },
+  {
+    name: "Canva AI",
+    domain: "Design",
+    type: ["Image", "Text"],
+    pricing: "Freemium",
+    desc: "Graphic design platform supercharged with AI. Generate images, rewrite text, remove backgrounds, and animate slides instantly.",
+    rating: 4.7,
+    users: "150M+",
+    verified: true,
+    trending: false,
+    url: "https://canva.com",
+    accentColor: "rgba(0,194,168,0.6)",
+  },
+  {
+    name: "Adobe Firefly",
+    domain: "Design",
+    type: ["Image"],
+    pricing: "Freemium",
+    desc: "Adobe's family of creative generative AI models. Commercially safe image generation trained on licensed content.",
+    rating: 4.6,
+    users: "25M+",
+    verified: true,
+    trending: false,
+    url: "https://firefly.adobe.com",
+    accentColor: "rgba(255,0,0,0.5)",
+  },
+  {
+    name: "Notion AI",
+    domain: "Productivity",
+    type: ["Text"],
+    pricing: "Premium",
+    desc: "AI writing assistant built into Notion. Summarize notes, generate action items, translate, and draft documents in-context.",
+    rating: 4.5,
+    users: "30M+",
+    verified: true,
+    trending: false,
+    url: "https://notion.so/product/ai",
+    accentColor: "rgba(255,255,255,0.3)",
+  },
+  {
+    name: "AutoGPT",
+    domain: "Agents",
+    type: ["Text", "Code"],
+    pricing: "Free",
+    desc: "Open-source autonomous AI agent framework. Give it a goal and watch it plan, browse the web, and execute tasks independently.",
+    rating: 4.3,
+    users: "2M+",
+    verified: false,
+    trending: false,
+    url: "https://agpt.co",
+    accentColor: "rgba(34,197,94,0.6)",
+  },
 ];
 
-const categories = ["All", "LLMs", "Image Gen", "Code AI", "Voice AI", "Agents"];
+const DOMAIN_FILTERS: { label: string; value: Domain | "All"; icon: React.ElementType }[] = [
+  { label: "All", value: "All", icon: Globe },
+  { label: "LLMs", value: "LLMs", icon: Brain },
+  { label: "Code AI", value: "Code AI", icon: Code2 },
+  { label: "Image Gen", value: "Image Gen", icon: ImageIcon },
+  { label: "Voice AI", value: "Voice AI", icon: Mic },
+  { label: "Agents", value: "Agents", icon: Bot },
+  { label: "Marketing", value: "Marketing", icon: Megaphone },
+  { label: "Design", value: "Design", icon: Palette },
+];
 
-export default function Tools() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
+const PRICING_FILTERS: { label: string; value: Pricing | "All" }[] = [
+  { label: "All Pricing", value: "All" },
+  { label: "Free", value: "Free" },
+  { label: "Freemium", value: "Freemium" },
+  { label: "Premium", value: "Premium" },
+];
 
-  const filteredTools = toolsData.filter(tool => {
-    const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) || tool.desc.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = activeCategory === "All" || tool.category === activeCategory;
-    return matchesSearch && matchesCategory;
-  });
+const TYPE_FILTERS: { label: string; value: ToolType | "All" }[] = [
+  { label: "All Types", value: "All" },
+  { label: "Text", value: "Text" },
+  { label: "Image", value: "Image" },
+  { label: "Audio", value: "Audio" },
+  { label: "Code", value: "Code" },
+  { label: "Video", value: "Video" },
+];
 
+const SORT_OPTIONS = ["Most Popular", "Top Rated", "Newest", "A–Z"] as const;
+type SortOption = (typeof SORT_OPTIONS)[number];
+
+const pricingColor: Record<Pricing, string> = {
+  Free: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  Freemium: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  Premium: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+};
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+  testId,
+  icon: Icon,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  testId: string;
+  icon?: React.ElementType;
+}) {
   return (
-    <div className="min-h-screen pt-24 pb-20">
-      <div className="container mx-auto px-4">
-        
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4 [text-shadow:0_0_20px_rgba(168,85,247,0.3)]">AI Tools Directory</h1>
-            <p className="text-muted-foreground text-lg">Discover and compare the best AI tools across every category.</p>
-          </div>
-          
-          <div className="w-full md:w-auto flex flex-col sm:flex-row gap-4">
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search tools..." 
-                className="pl-10 bg-white/5 border-white/10 focus-visible:ring-primary text-white"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                data-testid="input-search-tools"
-              />
+    <button
+      onClick={onClick}
+      data-testid={testId}
+      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all whitespace-nowrap ${
+        active
+          ? "bg-primary text-white border-primary shadow-[0_0_14px_rgba(168,85,247,0.55)]"
+          : "bg-white/5 text-muted-foreground border-white/10 hover:border-primary/40 hover:text-white"
+      }`}
+    >
+      {Icon && <Icon className="w-3.5 h-3.5" />}
+      {label}
+    </button>
+  );
+}
+
+function ToolCard({ tool, idx }: { tool: Tool; idx: number }) {
+  return (
+    <motion.div
+      key={tool.name}
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.25, delay: idx * 0.04 }}
+      data-testid={`tool-card-${tool.name.replace(/\s+/g, "-").toLowerCase()}`}
+      className="group"
+    >
+      <Card className="h-full flex flex-col bg-[hsl(240,15%,8%)] border-white/8 hover:border-primary/40 transition-all hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] relative overflow-hidden">
+
+        {/* Subtle top glow accent per tool */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px] opacity-70 transition-opacity group-hover:opacity-100"
+          style={{ background: `linear-gradient(90deg, transparent, ${tool.accentColor}, transparent)` }}
+        />
+
+        <CardHeader className="pb-3 pt-5 px-5">
+          {/* Icon row */}
+          <div className="flex items-start justify-between mb-4">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-display font-bold text-white border border-white/10 group-hover:scale-110 transition-transform"
+              style={{ background: `radial-gradient(circle at 30% 30%, ${tool.accentColor}, hsl(240,15%,12%))` }}
+            >
+              {tool.name[0]}
             </div>
-            <Button variant="outline" className="border-white/10 text-white gap-2" data-testid="btn-filters">
-              <Filter className="w-4 h-4" /> Filters
-            </Button>
+            <div className="flex items-center gap-2">
+              {tool.trending && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-secondary border border-secondary/30 bg-secondary/10 rounded-full px-2 py-0.5" data-testid={`badge-trending-${tool.name.replace(/\s+/g, "-").toLowerCase()}`}>
+                  <TrendingUp className="w-3 h-3" />
+                  Trending
+                </span>
+              )}
+              <span className={`inline-flex items-center text-xs font-medium border rounded-full px-2.5 py-0.5 ${pricingColor[tool.pricing]}`} data-testid={`badge-pricing-${tool.name.replace(/\s+/g, "-").toLowerCase()}`}>
+                {tool.pricing}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-wrap gap-2 mb-10">
-          {categories.map(cat => (
-            <Badge 
-              key={cat}
-              variant="outline"
-              className={`px-4 py-2 text-sm cursor-pointer transition-all ${
-                activeCategory === cat 
-                  ? "bg-primary text-white border-primary shadow-[0_0_10px_rgba(168,85,247,0.5)]" 
-                  : "bg-transparent text-muted-foreground border-white/10 hover:border-primary/50"
-              }`}
-              onClick={() => setActiveCategory(cat)}
-              data-testid={`filter-category-${cat.replace(/\s+/g, '-').toLowerCase()}`}
-            >
-              {cat}
-            </Badge>
-          ))}
-        </div>
+          {/* Name + domain badge */}
+          <div>
+            <h3 className="text-lg font-display font-bold text-white group-hover:text-primary transition-colors leading-tight mb-2">
+              {tool.name}
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              <Badge variant="outline" className="text-xs border-white/10 text-muted-foreground px-2 py-0 h-5">
+                {tool.domain}
+              </Badge>
+              {tool.type.map((t) => (
+                <Badge key={t} variant="outline" className="text-xs border-white/10 text-muted-foreground/70 px-2 py-0 h-5">
+                  {t}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredTools.map((tool, idx) => (
-            <motion.div
-              key={tool.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-            >
-              <Card className="h-full bg-card/40 border-white/10 hover:border-primary/40 transition-all group flex flex-col" data-testid={`tool-card-${tool.name.replace(/\s+/g, '-').toLowerCase()}`}>
-                <CardHeader className="pb-4">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center text-xl font-display font-bold text-white group-hover:scale-110 transition-transform">
-                      {tool.name[0]}
-                    </div>
-                    {tool.popular && (
-                      <Badge variant="secondary" className="bg-secondary/20 text-secondary border-none gap-1 px-2 py-1">
-                        <Zap className="w-3 h-3 fill-secondary" /> Hot
-                      </Badge>
-                    )}
-                  </div>
-                  <h3 className="text-xl font-display font-bold text-white mb-1 group-hover:text-primary transition-colors">{tool.name}</h3>
-                  <Badge variant="outline" className="w-fit text-xs border-white/10 text-muted-foreground">{tool.category}</Badge>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <p className="text-sm text-muted-foreground leading-relaxed">{tool.desc}</p>
-                </CardContent>
-                <CardFooter className="pt-4 border-t border-white/5 mt-auto flex justify-between items-center">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500/20" /> 4.{8 + (idx % 2)}
-                  </div>
-                  <Button size="sm" className="bg-white/10 text-white hover:bg-primary hover:text-white transition-all group/btn" data-testid={`btn-visit-${tool.name.replace(/\s+/g, '-').toLowerCase()}`}>
-                    Visit <ExternalLink className="w-4 h-4 ml-2 group-hover/btn:-translate-y-0.5 group-hover/btn:translate-x-0.5 transition-transform" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+        <CardContent className="flex-1 px-5 pb-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">{tool.desc}</p>
+        </CardContent>
 
-        {filteredTools.length === 0 && (
-          <div className="text-center py-20" data-testid="empty-tools-state">
-            <p className="text-muted-foreground text-lg">No tools found matching your criteria.</p>
-            <Button variant="link" className="text-primary mt-4" onClick={() => {setSearchTerm(""); setActiveCategory("All");}} data-testid="btn-clear-filters">
-              Clear filters
-            </Button>
+        {/* Verified badge */}
+        {tool.verified && (
+          <div className="mx-5 mb-3 flex items-center gap-1.5 py-2 px-3 rounded-lg bg-primary/8 border border-primary/20" data-testid={`badge-verified-${tool.name.replace(/\s+/g, "-").toLowerCase()}`}>
+            <ShieldCheck className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+            <span className="text-xs text-primary font-medium">Verified by Global AI Hub</span>
           </div>
         )}
 
+        <CardFooter className="px-5 pt-3 pb-5 border-t border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 text-xs text-yellow-400">
+              <Star className="w-3.5 h-3.5 fill-yellow-400" />
+              <span className="font-semibold">{tool.rating}</span>
+            </div>
+            <span className="text-xs text-muted-foreground/60">{tool.users} users</span>
+          </div>
+          <Button
+            size="sm"
+            asChild
+            className="h-8 px-3 text-xs bg-white/8 text-white hover:bg-primary hover:text-white border border-white/10 hover:border-primary transition-all group/btn"
+            data-testid={`btn-visit-${tool.name.replace(/\s+/g, "-").toLowerCase()}`}
+          >
+            <a href={tool.url} target="_blank" rel="noopener noreferrer">
+              Visit
+              <ExternalLink className="w-3 h-3 ml-1.5 group-hover/btn:-translate-y-0.5 group-hover/btn:translate-x-0.5 transition-transform" />
+            </a>
+          </Button>
+        </CardFooter>
+      </Card>
+    </motion.div>
+  );
+}
+
+export default function Tools() {
+  const [search, setSearch] = useState("");
+  const [domain, setDomain] = useState<Domain | "All">("All");
+  const [pricing, setPricing] = useState<Pricing | "All">("All");
+  const [type, setType] = useState<ToolType | "All">("All");
+  const [sort, setSort] = useState<SortOption>("Most Popular");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filtered = useMemo(() => {
+    let result = tools.filter((t) => {
+      const q = search.toLowerCase();
+      const matchSearch = !q || t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q) || t.domain.toLowerCase().includes(q);
+      const matchDomain = domain === "All" || t.domain === domain;
+      const matchPricing = pricing === "All" || t.pricing === pricing;
+      const matchType = type === "All" || t.type.includes(type as ToolType);
+      return matchSearch && matchDomain && matchPricing && matchType;
+    });
+
+    if (sort === "Top Rated") result = [...result].sort((a, b) => b.rating - a.rating);
+    if (sort === "Most Popular") result = [...result].sort((a, b) => (b.trending ? 1 : 0) - (a.trending ? 1 : 0));
+    if (sort === "A–Z") result = [...result].sort((a, b) => a.name.localeCompare(b.name));
+
+    return result;
+  }, [search, domain, pricing, type, sort]);
+
+  const activeFilterCount = [domain !== "All", pricing !== "All", type !== "All"].filter(Boolean).length;
+
+  const clearAll = () => {
+    setSearch("");
+    setDomain("All");
+    setPricing("All");
+    setType("All");
+    setSort("Most Popular");
+  };
+
+  return (
+    <div className="min-h-screen pt-24 pb-20">
+      {/* Ambient glow */}
+      <div className="fixed top-10 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+
+      <div className="container mx-auto px-4">
+
+        {/* ── PAGE HEADER ─────────────────────────────────── */}
+        <div className="mb-10">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-medium mb-4">
+              <Zap className="w-3 h-3" />
+              {tools.length} tools indexed &amp; growing daily
+            </div>
+            <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-3 [text-shadow:0_0_30px_rgba(168,85,247,0.2)]">
+              AI Tools Directory
+            </h1>
+            <p className="text-muted-foreground text-lg max-w-2xl">
+              Discover, compare, and launch the best AI tools across every category — curated and verified by the Global AI Hub team.
+            </p>
+          </motion.div>
+        </div>
+
+        {/* ── SEARCH + FILTER TOGGLE ──────────────────────── */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-5">
+          <div className="relative flex-1 max-w-xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search tools by name, category, or keyword…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-11 pr-10 h-11 bg-white/5 border-white/10 focus:border-primary focus:shadow-[0_0_15px_rgba(168,85,247,0.2)] placeholder:text-muted-foreground/50 transition-all"
+              data-testid="input-search-tools"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white"
+                data-testid="btn-clear-search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters((v) => !v)}
+            className={`h-11 px-4 border-white/10 gap-2 transition-all ${showFilters ? "bg-primary/10 border-primary/40 text-primary" : "text-white hover:border-white/30"}`}
+            data-testid="btn-toggle-filters"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+
+          {/* Sort */}
+          <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg px-1 h-11">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setSort(opt)}
+                data-testid={`sort-${opt.toLowerCase().replace(/\s+/g, "-")}`}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                  sort === opt ? "bg-primary text-white shadow-[0_0_10px_rgba(168,85,247,0.4)]" : "text-muted-foreground hover:text-white"
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── EXPANDED FILTERS PANEL ──────────────────────── */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="mb-5 p-5 rounded-2xl bg-white/[0.03] border border-white/8">
+                <div className="flex flex-col gap-5">
+                  {/* Domain */}
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Category</p>
+                    <div className="flex flex-wrap gap-2">
+                      {DOMAIN_FILTERS.map(({ label, value, icon }) => (
+                        <FilterChip
+                          key={label}
+                          label={label}
+                          active={domain === value}
+                          onClick={() => setDomain(value as Domain | "All")}
+                          testId={`filter-domain-${label.replace(/\s+/g, "-").toLowerCase()}`}
+                          icon={icon}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pricing */}
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Pricing</p>
+                    <div className="flex flex-wrap gap-2">
+                      {PRICING_FILTERS.map(({ label, value }) => (
+                        <FilterChip
+                          key={label}
+                          label={label}
+                          active={pricing === value}
+                          onClick={() => setPricing(value as Pricing | "All")}
+                          testId={`filter-pricing-${label.replace(/\s+/g, "-").toLowerCase()}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Type */}
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Output Type</p>
+                    <div className="flex flex-wrap gap-2">
+                      {TYPE_FILTERS.map(({ label, value }) => (
+                        <FilterChip
+                          key={label}
+                          label={label}
+                          active={type === value}
+                          onClick={() => setType(value as ToolType | "All")}
+                          testId={`filter-type-${label.replace(/\s+/g, "-").toLowerCase()}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── QUICK FILTER CHIPS (always visible) ─────────── */}
+        <div className="flex flex-wrap gap-2 mb-6 items-center">
+          {/* Domain quick chips */}
+          {DOMAIN_FILTERS.map(({ label, value, icon }) => (
+            <FilterChip
+              key={label}
+              label={label}
+              active={domain === value}
+              onClick={() => setDomain(value as Domain | "All")}
+              testId={`quick-filter-${label.replace(/\s+/g, "-").toLowerCase()}`}
+              icon={icon}
+            />
+          ))}
+          <div className="w-px h-5 bg-white/10 mx-1" />
+          <FilterChip label="Free" active={pricing === "Free"} onClick={() => setPricing(p => p === "Free" ? "All" : "Free")} testId="quick-filter-free" />
+          <FilterChip label="Premium" active={pricing === "Premium"} onClick={() => setPricing(p => p === "Premium" ? "All" : "Premium")} testId="quick-filter-premium" />
+          <div className="w-px h-5 bg-white/10 mx-1" />
+          <FilterChip label="Text" active={type === "Text"} onClick={() => setType(t => t === "Text" ? "All" : "Text")} testId="quick-filter-text" />
+          <FilterChip label="Image" active={type === "Image"} onClick={() => setType(t => t === "Image" ? "All" : "Image")} testId="quick-filter-image" />
+          <FilterChip label="Audio" active={type === "Audio"} onClick={() => setType(t => t === "Audio" ? "All" : "Audio")} testId="quick-filter-audio" />
+          <FilterChip label="Code" active={type === "Code"} onClick={() => setType(t => t === "Code" ? "All" : "Code")} testId="quick-filter-code" />
+
+          {(activeFilterCount > 0 || search) && (
+            <button
+              onClick={clearAll}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-white ml-2 underline underline-offset-2"
+              data-testid="btn-clear-all-filters"
+            >
+              <X className="w-3 h-3" /> Clear all
+            </button>
+          )}
+        </div>
+
+        {/* ── RESULTS COUNT ──────────────────────────────── */}
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-sm text-muted-foreground" data-testid="results-count">
+            Showing <span className="text-white font-semibold">{filtered.length}</span> of{" "}
+            <span className="text-white font-semibold">{tools.length}</span> tools
+          </p>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <BarChart2 className="w-3.5 h-3.5 text-primary" />
+            Updated daily
+          </div>
+        </div>
+
+        {/* ── TOOL GRID ───────────────────────────────────── */}
+        <AnimatePresence mode="popLayout">
+          {filtered.length > 0 ? (
+            <motion.div
+              layout
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+            >
+              {filtered.map((tool, idx) => (
+                <ToolCard key={tool.name} tool={tool} idx={idx} />
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-28 text-center"
+              data-testid="empty-tools-state"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5">
+                <Search className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="text-xl font-display font-bold text-white mb-2">No tools found</h3>
+              <p className="text-muted-foreground max-w-sm mb-6">
+                No AI tools match your current filters. Try adjusting your search or removing a filter.
+              </p>
+              <Button onClick={clearAll} className="gap-2" data-testid="btn-clear-filters">
+                Clear all filters <ChevronRight className="w-4 h-4" />
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── SUBMIT CTA ──────────────────────────────────── */}
+        {filtered.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-16 p-[1px] rounded-2xl bg-gradient-to-r from-primary/40 via-secondary/30 to-primary/10"
+          >
+            <div className="bg-[hsl(240,15%,7%)] rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <h3 className="text-2xl font-display font-bold text-white mb-2">
+                  Know a tool we're missing?
+                </h3>
+                <p className="text-muted-foreground">
+                  Submit any AI tool for review. Verified tools get the Global AI Hub badge and priority placement.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                className="whitespace-nowrap bg-primary text-white hover:bg-primary/90 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_35px_rgba(168,85,247,0.6)] transition-all"
+                data-testid="btn-submit-tool"
+              >
+                Submit a Tool
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
+  );
+}
+
+function ArrowRight({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M5 12h14M12 5l7 7-7 7" />
+    </svg>
   );
 }
