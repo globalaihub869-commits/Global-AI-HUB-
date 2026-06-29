@@ -1,10 +1,120 @@
 import { Link, useLocation } from "wouter";
-import { CircuitBoard, Menu, X, Globe, ChevronDown, Check } from "lucide-react";
+import {
+  CircuitBoard, Menu, X, Globe, ChevronDown, Check,
+  LogOut, User, Code2, Briefcase, GraduationCap, Settings,
+} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { LANGUAGES } from "@/i18n/translations";
+import { useAuth, type ProfileType } from "@/context/AuthContext";
+
+const PROFILE_META: Record<ProfileType, { icon: React.ElementType; label: string; color: string }> = {
+  developer: { icon: Code2, label: "Developer", color: "text-primary" },
+  business: { icon: Briefcase, label: "Business", color: "text-secondary" },
+  student: { icon: GraduationCap, label: "Student", color: "text-emerald-400" },
+};
+
+function UserMenu() {
+  const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [open]);
+
+  if (!user) return null;
+
+  const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const profile = user.profileType ? PROFILE_META[user.profileType] : null;
+  const ProfileIcon = profile?.icon ?? User;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        data-testid="btn-user-menu"
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-primary/40 transition-all"
+        aria-expanded={open}
+      >
+        <span className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          {initials}
+        </span>
+        <span className="hidden md:block text-sm text-white font-medium max-w-[100px] truncate">{user.name.split(" ")[0]}</span>
+        {profile && (
+          <span className={`hidden md:flex items-center gap-1 text-xs ${profile.color}`}>
+            <ProfileIcon className="w-3 h-3" />
+          </span>
+        )}
+        <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-full mt-2 end-0 w-64 rounded-2xl bg-[hsl(240,15%,9%)] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] z-50 overflow-hidden"
+            data-testid="user-dropdown"
+          >
+            {/* User info header */}
+            <div className="p-4 border-b border-white/8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{user.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+              </div>
+              {profile && (
+                <div className={`mt-3 inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-white/5 border border-white/10 ${profile.color}`}>
+                  <ProfileIcon className="w-3 h-3" />
+                  {profile.label}
+                </div>
+              )}
+            </div>
+
+            {/* Menu items */}
+            <div className="py-1">
+              <Link
+                href="/onboarding"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+                data-testid="user-menu-profile"
+              >
+                <Settings className="w-4 h-4" />
+                Change Profile Type
+              </Link>
+              <button
+                onClick={async () => {
+                  setOpen(false);
+                  await logout();
+                  navigate("/");
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                data-testid="btn-logout"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 function LanguageSwitcher() {
   const { lang, setLang, t } = useLanguage();
@@ -14,9 +124,7 @@ function LanguageSwitcher() {
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
     if (open) document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
@@ -50,35 +158,20 @@ function LanguageSwitcher() {
             className="absolute top-full mt-2 end-0 w-56 max-h-80 overflow-y-auto rounded-2xl bg-[hsl(240,15%,9%)] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] z-50 py-1"
             data-testid="language-dropdown"
           >
-            {/* LTR group */}
-            <div className="px-3 py-1.5 text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium">
-              Left-to-Right
-            </div>
+            <div className="px-3 py-1.5 text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium">Left-to-Right</div>
             {ltrLangs.map((l) => (
-              <button
-                key={l.code}
-                onClick={() => { setLang(l.code); setOpen(false); }}
-                data-testid={`lang-option-${l.code}`}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-start hover:bg-primary/10 ${lang === l.code ? "text-primary" : "text-muted-foreground hover:text-white"}`}
-              >
+              <button key={l.code} onClick={() => { setLang(l.code); setOpen(false); }} data-testid={`lang-option-${l.code}`}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-start hover:bg-primary/10 ${lang === l.code ? "text-primary" : "text-muted-foreground hover:text-white"}`}>
                 <span className="text-base leading-none">{l.flag}</span>
                 <span className="flex-1 font-medium">{l.native}</span>
                 <span className="text-xs text-muted-foreground/50">{l.name}</span>
                 {lang === l.code && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
               </button>
             ))}
-
-            {/* RTL group */}
-            <div className="px-3 py-1.5 mt-1 text-[10px] text-secondary/60 uppercase tracking-widest font-medium border-t border-white/5">
-              Right-to-Left ←
-            </div>
+            <div className="px-3 py-1.5 mt-1 text-[10px] text-secondary/60 uppercase tracking-widest font-medium border-t border-white/5">Right-to-Left ←</div>
             {rtlLangs.map((l) => (
-              <button
-                key={l.code}
-                onClick={() => { setLang(l.code); setOpen(false); }}
-                data-testid={`lang-option-${l.code}`}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-start hover:bg-secondary/10 ${lang === l.code ? "text-secondary" : "text-muted-foreground hover:text-white"}`}
-              >
+              <button key={l.code} onClick={() => { setLang(l.code); setOpen(false); }} data-testid={`lang-option-${l.code}`}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-start hover:bg-secondary/10 ${lang === l.code ? "text-secondary" : "text-muted-foreground hover:text-white"}`}>
                 <span className="text-base leading-none">{l.flag}</span>
                 <span className="flex-1 font-medium" dir="rtl">{l.native}</span>
                 <span className="text-xs text-muted-foreground/50">{l.name}</span>
@@ -97,6 +190,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useLanguage();
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -104,7 +198,6 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => { setIsMobileMenuOpen(false); }, [location]);
 
   const navLinks = [
@@ -115,13 +208,7 @@ export default function Navbar() {
   ];
 
   return (
-    <header
-      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        isScrolled
-          ? "bg-background/80 backdrop-blur-md border-b border-primary/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
-          : "bg-transparent border-b border-transparent"
-      }`}
-    >
+    <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? "bg-background/80 backdrop-blur-md border-b border-primary/20 shadow-[0_0_15px_rgba(168,85,247,0.15)]" : "bg-transparent border-b border-transparent"}`}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2 group" data-testid="nav-brand">
@@ -134,17 +221,12 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Nav Links */}
+        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`text-sm font-medium transition-colors hover:text-primary hover:[text-shadow:0_0_8px_rgba(168,85,247,0.4)] ${
-                location === link.href ? "text-primary [text-shadow:0_0_8px_rgba(168,85,247,0.4)]" : "text-muted-foreground"
-              }`}
-              data-testid={`nav-link-${link.href.replace("/", "") || "home"}`}
-            >
+            <Link key={link.href} href={link.href}
+              className={`text-sm font-medium transition-colors hover:text-primary hover:[text-shadow:0_0_8px_rgba(168,85,247,0.4)] ${location === link.href ? "text-primary [text-shadow:0_0_8px_rgba(168,85,247,0.4)]" : "text-muted-foreground"}`}
+              data-testid={`nav-link-${link.href.replace("/", "") || "home"}`}>
               {t(link.key)}
             </Link>
           ))}
@@ -153,28 +235,28 @@ export default function Navbar() {
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
           <LanguageSwitcher />
-          <Button
-            variant="outline"
-            className="rounded-full border-primary/50 text-primary hover:bg-primary/10 transition-colors"
-            data-testid="nav-btn-submit"
-          >
-            {t("nav.submitTool")}
-          </Button>
-          <Button
-            className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] transition-all"
-            data-testid="nav-btn-start"
-          >
-            {t("nav.getStarted")}
-          </Button>
+          {!isLoading && (
+            isAuthenticated ? (
+              <UserMenu />
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="outline" className="rounded-full border-primary/50 text-primary hover:bg-primary/10 transition-colors" data-testid="nav-btn-login">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] transition-all" data-testid="nav-btn-signup">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )
+          )}
         </div>
 
-        {/* Mobile Toggle */}
-        <button
-          className="md:hidden text-white p-2"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          data-testid="nav-mobile-toggle"
-          aria-label="Toggle menu"
-        >
+        {/* Mobile toggle */}
+        <button className="md:hidden text-white p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} data-testid="nav-mobile-toggle" aria-label="Toggle menu">
           {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
@@ -183,35 +265,30 @@ export default function Navbar() {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
             className="md:hidden bg-background/95 backdrop-blur-xl border-b border-primary/20 overflow-hidden"
           >
             <div className="px-4 py-4 flex flex-col gap-3">
               {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`block text-lg font-medium p-2 rounded-lg transition-colors ${
-                    location === link.href ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-white"
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
+                <Link key={link.href} href={link.href}
+                  className={`block text-lg font-medium p-2 rounded-lg transition-colors ${location === link.href ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-white"}`}
+                  onClick={() => setIsMobileMenuOpen(false)}>
                   {t(link.key)}
                 </Link>
               ))}
               <div className="pt-3 border-t border-white/5 flex flex-col gap-2">
-                <div className="mb-2">
-                  <LanguageSwitcher />
-                </div>
-                <Button variant="outline" className="w-full rounded-full border-primary/50 text-primary">
-                  {t("nav.submitTool")}
-                </Button>
-                <Button className="w-full rounded-full bg-primary text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-                  {t("nav.getStarted")}
-                </Button>
+                <div className="mb-1"><LanguageSwitcher /></div>
+                {!isLoading && (
+                  isAuthenticated ? (
+                    <UserMenu />
+                  ) : (
+                    <>
+                      <Link href="/login"><Button variant="outline" className="w-full rounded-full border-primary/50 text-primary">Sign In</Button></Link>
+                      <Link href="/signup"><Button className="w-full rounded-full bg-primary text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]">Get Started</Button></Link>
+                    </>
+                  )
+                )}
               </div>
             </div>
           </motion.div>

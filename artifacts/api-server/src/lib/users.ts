@@ -1,0 +1,80 @@
+import { randomUUID } from "crypto";
+import bcrypt from "bcryptjs";
+
+export type ProfileType = "developer" | "business" | "student";
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+  profileType: ProfileType | null;
+  createdAt: Date;
+}
+
+export interface PublicUser {
+  id: string;
+  email: string;
+  name: string;
+  profileType: ProfileType | null;
+  createdAt: string;
+}
+
+const users = new Map<string, User>();
+const emailIndex = new Map<string, string>();
+
+export function toPublic(user: User): PublicUser {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    profileType: user.profileType,
+    createdAt: user.createdAt.toISOString(),
+  };
+}
+
+export async function createUser(
+  email: string,
+  name: string,
+  password: string,
+): Promise<User> {
+  const existing = emailIndex.get(email.toLowerCase());
+  if (existing) throw new Error("EMAIL_TAKEN");
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const user: User = {
+    id: randomUUID(),
+    email: email.toLowerCase().trim(),
+    name: name.trim(),
+    passwordHash,
+    profileType: null,
+    createdAt: new Date(),
+  };
+
+  users.set(user.id, user);
+  emailIndex.set(user.email, user.id);
+  return user;
+}
+
+export async function verifyUser(
+  email: string,
+  password: string,
+): Promise<User | null> {
+  const id = emailIndex.get(email.toLowerCase().trim());
+  if (!id) return null;
+  const user = users.get(id);
+  if (!user) return null;
+  const ok = await bcrypt.compare(password, user.passwordHash);
+  return ok ? user : null;
+}
+
+export function getUserById(id: string): User | undefined {
+  return users.get(id);
+}
+
+export function updateUserProfile(id: string, profileType: ProfileType): User | null {
+  const user = users.get(id);
+  if (!user) return null;
+  user.profileType = profileType;
+  return user;
+}
