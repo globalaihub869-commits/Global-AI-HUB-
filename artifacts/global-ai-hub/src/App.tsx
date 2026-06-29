@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import AssistantWidget from "@/components/assistant/AssistantWidget";
 import Home from "@/pages/home";
 import Tools from "@/pages/tools";
 import News from "@/pages/news";
@@ -55,32 +56,35 @@ function OnboardingGuard() {
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/">
-        <Layout><Home /></Layout>
-      </Route>
-      <Route path="/tools">
-        <Layout><Tools /></Layout>
-      </Route>
-      <Route path="/news">
-        <Layout><News /></Layout>
-      </Route>
-      <Route path="/models">
-        <Layout><Models /></Layout>
-      </Route>
-      <Route path="/login">
-        <AuthLayout><Login /></AuthLayout>
-      </Route>
-      <Route path="/signup">
-        <AuthLayout><Signup /></AuthLayout>
-      </Route>
-      <Route path="/onboarding">
-        <OnboardingGuard />
-      </Route>
-      <Route>
-        <Layout><NotFound /></Layout>
-      </Route>
-    </Switch>
+    <>
+      <Switch>
+        <Route path="/">
+          <Layout><Home /></Layout>
+        </Route>
+        <Route path="/tools">
+          <Layout><Tools /></Layout>
+        </Route>
+        <Route path="/news">
+          <Layout><News /></Layout>
+        </Route>
+        <Route path="/models">
+          <Layout><Models /></Layout>
+        </Route>
+        <Route path="/login">
+          <AuthLayout><Login /></AuthLayout>
+        </Route>
+        <Route path="/signup">
+          <AuthLayout><Signup /></AuthLayout>
+        </Route>
+        <Route path="/onboarding">
+          <OnboardingGuard />
+        </Route>
+        <Route>
+          <Layout><NotFound /></Layout>
+        </Route>
+      </Switch>
+      <AssistantWidget />
+    </>
   );
 }
 
