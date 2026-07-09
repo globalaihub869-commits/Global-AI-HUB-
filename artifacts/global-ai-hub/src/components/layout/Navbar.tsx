@@ -221,11 +221,13 @@ export default function Navbar() {
 
   useEffect(() => { setIsMobileMenuOpen(false); }, [location]);
 
-  const navLinks = [
-    { key: "nav.home" as const, href: "/" },
-    { key: "nav.tools" as const, href: "/tools" },
-    { key: "nav.news" as const, href: "/news" },
-    { key: "nav.models" as const, href: "/models" },
+  const navLinks: { key?: Parameters<typeof t>[0]; label?: string; href: string }[] = [
+    { key: "nav.home", href: "/" },
+    { key: "nav.tools", href: "/tools" },
+    { key: "nav.news", href: "/news" },
+    { key: "nav.models", href: "/models" },
+    { label: "Jobs", href: "/jobs" },
+    { label: "ROI Calculator", href: "/roi-calculator" },
   ];
 
   return (
@@ -248,7 +250,7 @@ export default function Navbar() {
             <Link key={link.href} href={link.href}
               className={`text-sm font-medium transition-colors hover:text-primary hover:[text-shadow:0_0_8px_rgba(168,85,247,0.4)] ${location === link.href ? "text-primary [text-shadow:0_0_8px_rgba(168,85,247,0.4)]" : "text-muted-foreground"}`}
               data-testid={`nav-link-${link.href.replace("/", "") || "home"}`}>
-              {t(link.key)}
+              {link.key ? t(link.key) : link.label}
             </Link>
           ))}
         </nav>
@@ -295,7 +297,7 @@ export default function Navbar() {
                 <Link key={link.href} href={link.href}
                   className={`block text-lg font-medium p-2 rounded-lg transition-colors ${location === link.href ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-white"}`}
                   onClick={() => setIsMobileMenuOpen(false)}>
-                  {t(link.key)}
+                  {link.key ? t(link.key) : link.label}
                 </Link>
               ))}
               <div className="pt-3 border-t border-white/5 flex flex-col gap-2">

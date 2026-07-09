@@ -17,6 +17,8 @@ import Home from "@/pages/home";
 import Tools from "@/pages/tools";
 import News from "@/pages/news";
 import Models from "@/pages/models";
+import Jobs from "@/pages/jobs";
+import RoiCalculator from "@/pages/roi-calculator";
 import Login from "@/pages/auth/login";
 import Signup from "@/pages/auth/signup";
 import Onboarding from "@/pages/auth/onboarding";
@@ -119,6 +121,12 @@ function Router() {
         </Route>
         <Route path="/models">
           <Layout><Models /></Layout>
+        </Route>
+        <Route path="/jobs">
+          <Layout><Jobs /></Layout>
+        </Route>
+        <Route path="/roi-calculator">
+          <Layout><RoiCalculator /></Layout>
         </Route>
         <Route path="/login">
           <AuthLayout><Login /></AuthLayout>

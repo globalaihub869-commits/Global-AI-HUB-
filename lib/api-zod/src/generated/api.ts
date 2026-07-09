@@ -144,3 +144,82 @@ export const GetNewsArticleResponse = zod.object({
 })
 
 
+/**
+ * @summary List job board postings
+ */
+export const ListJobsQueryParams = zod.object({
+  "search": zod.coerce.string().optional().describe('Full-text search across title, company and tags'),
+  "category": zod.coerce.string().optional().describe('Filter by job category')
+})
+
+export const ListJobsResponse = zod.object({
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "category": zod.string(),
+  "type": zod.enum(['Full-time', 'Part-time', 'Contract', 'Freelance']),
+  "location": zod.string(),
+  "remote": zod.boolean(),
+  "salaryRange": zod.string(),
+  "description": zod.string(),
+  "tags": zod.array(zod.string()),
+  "postedAt": zod.string(),
+  "accentColor": zod.string()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Post a new job listing
+ */
+export const PostJobBody = zod.object({
+  "title": zod.string(),
+  "company": zod.string(),
+  "category": zod.string(),
+  "type": zod.enum(['Full-time', 'Part-time', 'Contract', 'Freelance']),
+  "location": zod.string(),
+  "remote": zod.boolean().optional(),
+  "salaryRange": zod.string(),
+  "description": zod.string(),
+  "tags": zod.array(zod.string()).optional()
+})
+
+export const PostJobResponse = zod.object({
+  "job": zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "category": zod.string(),
+  "type": zod.enum(['Full-time', 'Part-time', 'Contract', 'Freelance']),
+  "location": zod.string(),
+  "remote": zod.boolean(),
+  "salaryRange": zod.string(),
+  "description": zod.string(),
+  "tags": zod.array(zod.string()),
+  "postedAt": zod.string(),
+  "accentColor": zod.string()
+})
+})
+
+
+/**
+ * @summary Submit an application to a job
+ */
+export const ApplyToJobParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ApplyToJobBody = zod.object({
+  "name": zod.string(),
+  "email": zod.string(),
+  "message": zod.string().optional()
+})
+
+export const ApplyToJobResponse = zod.object({
+  "success": zod.boolean(),
+  "applicationId": zod.string()
+})
+
+

@@ -53,6 +53,64 @@ export interface ToolListResponse {
   intentSummary?: string;
 }
 
+export type JobType = typeof JobType[keyof typeof JobType];
+
+
+export const JobType = {
+  'Full-time': 'Full-time',
+  'Part-time': 'Part-time',
+  Contract: 'Contract',
+  Freelance: 'Freelance',
+} as const;
+
+export interface Job {
+  id: string;
+  title: string;
+  company: string;
+  category: string;
+  type: JobType;
+  location: string;
+  remote: boolean;
+  salaryRange: string;
+  description: string;
+  tags: string[];
+  postedAt: string;
+  accentColor: string;
+}
+
+export type JobInputType = typeof JobInputType[keyof typeof JobInputType];
+
+
+export const JobInputType = {
+  'Full-time': 'Full-time',
+  'Part-time': 'Part-time',
+  Contract: 'Contract',
+  Freelance: 'Freelance',
+} as const;
+
+export interface JobInput {
+  title: string;
+  company: string;
+  category: string;
+  type: JobInputType;
+  location: string;
+  remote?: boolean;
+  salaryRange: string;
+  description: string;
+  tags?: string[];
+}
+
+export interface JobListResponse {
+  jobs: Job[];
+  total: number;
+}
+
+export interface JobApplicationInput {
+  name: string;
+  email: string;
+  message?: string;
+}
+
 export type NewsDigestCategory = typeof NewsDigestCategory[keyof typeof NewsDigestCategory];
 
 
@@ -144,5 +202,25 @@ search?: string;
  * Filter by news category
  */
 category?: string;
+};
+
+export type ListJobsParams = {
+/**
+ * Full-text search across title, company and tags
+ */
+search?: string;
+/**
+ * Filter by job category
+ */
+category?: string;
+};
+
+export type PostJob201 = {
+  job: Job;
+};
+
+export type ApplyToJob201 = {
+  success: boolean;
+  applicationId: string;
 };
 
