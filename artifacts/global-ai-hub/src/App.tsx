@@ -16,6 +16,7 @@ import Models from "@/pages/models";
 import Login from "@/pages/auth/login";
 import Signup from "@/pages/auth/signup";
 import Onboarding from "@/pages/auth/onboarding";
+import AccountRecovery from "@/pages/auth/account-recovery";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
@@ -78,6 +79,9 @@ function Router() {
         </Route>
         <Route path="/onboarding">
           <OnboardingGuard />
+        </Route>
+        <Route path="/account-recovery">
+          <AuthLayout><AccountRecovery /></AuthLayout>
         </Route>
         <Route>
           <Layout><NotFound /></Layout>

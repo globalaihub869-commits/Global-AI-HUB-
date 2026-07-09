@@ -89,9 +89,15 @@ export default function Login() {
                   <label className="text-sm font-medium text-muted-foreground" htmlFor="login-password">
                     Password
                   </label>
-                  <button type="button" className="text-xs text-primary hover:text-primary/80 transition-colors">
-                    Forgot password?
-                  </button>
+                  <div className="flex items-center gap-2.5">
+                    <button type="button" className="text-xs text-primary hover:text-primary/80 transition-colors">
+                      Forgot password?
+                    </button>
+                    <span className="text-muted-foreground/30 text-xs">|</span>
+                    <Link href="/account-recovery" className="text-xs text-secondary hover:text-secondary/80 transition-colors" data-testid="link-forgot-user-id">
+                      Forgot User ID?
+                    </Link>
+                  </div>
                 </div>
                 <div className="relative">
                   <Input
