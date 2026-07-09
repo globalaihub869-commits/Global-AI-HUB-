@@ -6,11 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SocialProvider } from "@/context/SocialContext";
+import { SupportProvider } from "@/context/SupportContext";
 import NotFound from "@/pages/not-found";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AssistantWidget from "@/components/assistant/AssistantWidget";
+import SupportAgentWidget from "@/components/support/SupportAgentWidget";
 import Home from "@/pages/home";
 import Tools from "@/pages/tools";
 import News from "@/pages/news";
@@ -141,6 +143,7 @@ function Router() {
         </Route>
       </Switch>
       <AssistantWidget />
+      <SupportAgentWidget />
     </>
   );
 }
@@ -150,14 +153,16 @@ function App() {
     <LanguageProvider>
       <AuthProvider>
         <SocialProvider>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                <Router />
-              </WouterRouter>
-              <Toaster />
-            </TooltipProvider>
-          </QueryClientProvider>
+          <SupportProvider>
+            <QueryClientProvider client={queryClient}>
+              <TooltipProvider>
+                <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                  <Router />
+                </WouterRouter>
+                <Toaster />
+              </TooltipProvider>
+            </QueryClientProvider>
+          </SupportProvider>
         </SocialProvider>
       </AuthProvider>
     </LanguageProvider>

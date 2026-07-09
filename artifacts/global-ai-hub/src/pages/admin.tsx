@@ -2,54 +2,45 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldAlert, Activity, Users, Globe2, Gauge, LifeBuoy, Clock, CheckCircle2, AlertTriangle, CircleDot,
+  BrainCircuit, Bot, Ticket as TicketIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useSupport, type SupportTicket } from "@/context/SupportContext";
 
 interface TrafficPoint {
   t: number;
   visitors: number;
 }
 
-interface Ticket {
-  id: string;
-  user: string;
-  issue: string;
-  status: "Open" | "Pending" | "Resolved";
-  severity: "Low" | "Medium" | "High";
-  submittedAt: string;
-}
-
-const SEED_TICKETS: Ticket[] = [
-  { id: "TCK-1042", user: "amara.dev@proton.me", issue: "Face scan step on Account Recovery gets stuck at 80%.", status: "Open", severity: "High", submittedAt: "2026-07-09T08:12:00Z" },
-  { id: "TCK-1041", user: "l.moreau@studio.io", issue: "Can't find the 'Forgot User ID?' link on mobile viewport.", status: "Pending", severity: "Medium", submittedAt: "2026-07-09T07:44:00Z" },
-  { id: "TCK-1040", user: "priya.k@venturelab.com", issue: "Aria assistant widget not responding to voice input on Safari.", status: "Open", severity: "Medium", submittedAt: "2026-07-08T22:15:00Z" },
-  { id: "TCK-1039", user: "d.oyelaran@marketly.ai", issue: "Bookmarked tools not appearing after switching languages to Arabic.", status: "Resolved", severity: "Low", submittedAt: "2026-07-08T19:03:00Z" },
-  { id: "TCK-1038", user: "j.tanaka@codeforge.dev", issue: "Requesting bulk export of Hub Points history for finance records.", status: "Pending", severity: "Low", submittedAt: "2026-07-08T14:51:00Z" },
-  { id: "TCK-1037", user: "s.nwosu@brightpath.edu", issue: "Document upload rejects valid PDF passports during recovery flow.", status: "Resolved", severity: "High", submittedAt: "2026-07-07T11:20:00Z" },
-];
-
-const statusStyle: Record<Ticket["status"], string> = {
+const statusStyle: Record<SupportTicket["status"], string> = {
   Open: "text-red-400 border-red-400/40 bg-red-400/10",
   Pending: "text-yellow-400 border-yellow-400/40 bg-yellow-400/10",
   Resolved: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10",
 };
 
-const severityStyle: Record<Ticket["severity"], string> = {
+const severityStyle: Record<SupportTicket["severity"], string> = {
   High: "text-red-300 border-red-400/30",
   Medium: "text-secondary border-secondary/30",
   Low: "text-muted-foreground border-white/15",
 };
 
-const statusIcon: Record<Ticket["status"], React.ElementType> = {
+const statusIcon: Record<SupportTicket["status"], React.ElementType> = {
   Open: AlertTriangle,
   Pending: Clock,
   Resolved: CheckCircle2,
 };
 
+const sourceLabel: Record<SupportTicket["source"], string> = {
+  seed: "Manual",
+  agent: "AI Support Agent",
+  "self-heal": "Self-Healing System",
+};
+
 const REGIONS = ["United States", "Germany", "India", "Brazil", "Japan", "Nigeria", "France", "UAE"];
 
 export default function AdminDashboard() {
+  const { tickets, healEvents, healthStatus, totalAutoHeals } = useSupport();
   const [activeUsers, setActiveUsers] = useState(312);
   const [requestsPerMin, setRequestsPerMin] = useState(1840);
   const [pageViews, setPageViews] = useState(58211);
@@ -176,6 +167,57 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* AI Self-Healing System */}
+      <div className="mb-8" data-testid="section-self-healing">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
+            <BrainCircuit className="w-4 h-4 text-primary" /> AI Self-Healing System
+          </h2>
+          <div className="flex items-center gap-2 text-xs" data-testid="self-healing-status">
+            <span className="relative flex h-2 w-2">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${healthStatus === "monitoring" ? "bg-secondary" : "bg-emerald-400"}`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${healthStatus === "monitoring" ? "bg-secondary" : "bg-emerald-400"}`} />
+            </span>
+            <span className={healthStatus === "monitoring" ? "text-secondary" : "text-emerald-400"}>
+              {healthStatus === "monitoring" ? "Soft-resetting..." : "All systems healthy"}
+            </span>
+          </div>
+        </div>
+        <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-6 mb-3 text-xs text-muted-foreground">
+              <span>Autonomous glitch detection scans the UI every 13s and applies soft resets automatically — no human intervention required.</span>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              <Badge variant="outline" className="text-[10px] text-primary border-primary/30" data-testid="badge-auto-heal-count">
+                {totalAutoHeals} auto-heals this session
+              </Badge>
+            </div>
+            <div className="max-h-40 overflow-y-auto flex flex-col gap-2">
+              <AnimatePresence initial={false}>
+                {healEvents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground/60 py-4 text-center">Monitoring — no glitches detected yet.</p>
+                ) : (
+                  healEvents.map((h) => (
+                    <motion.div
+                      key={h.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="text-xs text-muted-foreground border-l-2 border-primary/40 pl-2 flex items-center justify-between gap-2"
+                      data-testid={`heal-event-${h.id}`}
+                    >
+                      <span>{h.message}</span>
+                      <span className="text-muted-foreground/40 flex-shrink-0">{new Date(h.timestamp).toLocaleTimeString()}</span>
+                    </motion.div>
+                  ))
+                )}
+              </AnimatePresence>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Support desk */}
       <div data-testid="section-support-desk">
         <div className="flex items-center justify-between mb-4">
@@ -183,32 +225,48 @@ export default function AdminDashboard() {
             <LifeBuoy className="w-4 h-4 text-secondary" /> Customer Support &amp; Help Desk
           </h2>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Open: {SEED_TICKETS.filter((t) => t.status === "Open").length}</span>
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" /> Pending: {SEED_TICKETS.filter((t) => t.status === "Pending").length}</span>
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Resolved: {SEED_TICKETS.filter((t) => t.status === "Resolved").length}</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Open: {tickets.filter((t) => t.status === "Open").length}</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" /> Pending: {tickets.filter((t) => t.status === "Pending").length}</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Resolved: {tickets.filter((t) => t.status === "Resolved").length}</span>
           </div>
         </div>
+        <p className="text-xs text-muted-foreground/60 mb-4 flex items-center gap-1.5">
+          <Bot className="w-3.5 h-3.5 text-cyan-300" /> Simple queries are auto-resolved by the AI Support Agent in real time — only complex tickets land here.
+        </p>
 
         <Card className="bg-[hsl(240,15%,8%)] border-white/8 overflow-hidden">
           <div className="divide-y divide-white/5">
-            {SEED_TICKETS.map((ticket) => {
-              const Icon = statusIcon[ticket.status];
-              return (
-                <div key={ticket.id} className="flex items-start gap-4 p-4 hover:bg-white/[0.03] transition-colors" data-testid={`ticket-${ticket.id}`}>
-                  <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${statusStyle[ticket.status].split(" ")[0]}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-xs font-mono text-muted-foreground/60">{ticket.id}</span>
-                      <span className="text-xs text-muted-foreground">{ticket.user}</span>
-                      <Badge variant="outline" className={`text-[10px] ${severityStyle[ticket.severity]}`}>{ticket.severity}</Badge>
+            <AnimatePresence initial={false}>
+              {tickets.map((ticket) => {
+                const Icon = statusIcon[ticket.status];
+                return (
+                  <motion.div
+                    key={ticket.id}
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-4 p-4 hover:bg-white/[0.03] transition-colors"
+                    data-testid={`ticket-${ticket.id}`}
+                  >
+                    <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${statusStyle[ticket.status].split(" ")[0]}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-xs font-mono text-muted-foreground/60">{ticket.id}</span>
+                        <span className="text-xs text-muted-foreground">{ticket.user}</span>
+                        <Badge variant="outline" className={`text-[10px] ${severityStyle[ticket.severity]}`}>{ticket.severity}</Badge>
+                        {ticket.source === "agent" && (
+                          <Badge variant="outline" className="text-[10px] text-cyan-300 border-cyan-400/30 inline-flex items-center gap-1">
+                            <TicketIcon className="w-2.5 h-2.5" /> {sourceLabel[ticket.source]}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-white/90">{ticket.issue}</p>
+                      <p className="text-[11px] text-muted-foreground/50 mt-1">{new Date(ticket.submittedAt).toLocaleString()}</p>
                     </div>
-                    <p className="text-sm text-white/90">{ticket.issue}</p>
-                    <p className="text-[11px] text-muted-foreground/50 mt-1">{new Date(ticket.submittedAt).toLocaleString()}</p>
-                  </div>
-                  <Badge variant="outline" className={`text-xs flex-shrink-0 ${statusStyle[ticket.status]}`}>{ticket.status}</Badge>
-                </div>
-              );
-            })}
+                    <Badge variant="outline" className={`text-xs flex-shrink-0 ${statusStyle[ticket.status]}`}>{ticket.status}</Badge>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         </Card>
       </div>
