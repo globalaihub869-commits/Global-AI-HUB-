@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { toolsData, type ToolRecord } from "../data/tools";
+import { semanticSearchTools } from "../lib/semanticSearch";
 
 const router: IRouter = Router();
 
@@ -7,16 +8,12 @@ router.get("/tools", (req, res) => {
   const { search, domain, pricing, type } = req.query as Record<string, string | undefined>;
 
   let results: ToolRecord[] = toolsData;
+  let intentSummary: string | undefined;
 
   if (search) {
-    const q = search.toLowerCase();
-    results = results.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.domain.toLowerCase().includes(q) ||
-        t.tags.some((tag) => tag.toLowerCase().includes(q)),
-    );
+    const { results: scored, intentSummary: summary } = semanticSearchTools(search, results);
+    results = scored.map((s) => s.tool);
+    intentSummary = summary;
   }
 
   if (domain && domain !== "All") {
@@ -31,7 +28,7 @@ router.get("/tools", (req, res) => {
     results = results.filter((t) => t.outputTypes.includes(type as ToolRecord["outputTypes"][number]));
   }
 
-  res.json({ tools: results, total: results.length });
+  res.json({ tools: results, total: results.length, ...(intentSummary ? { intentSummary } : {}) });
 });
 
 router.get("/tools/:id", (req, res) => {

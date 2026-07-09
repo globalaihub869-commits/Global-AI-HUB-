@@ -1,1 +1,2 @@
 - [Global AI Hub roles & social state](global-ai-hub-roles-social.md) — admin role via email prefix "admin"; social/bookmarks/points are localStorage-only, not backend-persisted.
+- [Global AI Hub tool intent search](global-ai-hub-tool-intent-search.md) — natural-language tool search uses a shared server-side intent map; reuse it for any widget needing tool recommendations.

@@ -215,6 +215,9 @@ components:
             $ref: "#/components/schemas/Tool"
         total:
           type: integer
+        intentSummary:
+          type: string
+          description: Human-readable explanation of the detected search intent, present when semantic matching was used
       required:
         - tools
         - total

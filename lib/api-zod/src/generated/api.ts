@@ -44,7 +44,8 @@ export const ListToolsResponse = zod.object({
   "url": zod.string(),
   "accentColor": zod.string()
 })),
-  "total": zod.number()
+  "total": zod.number(),
+  "intentSummary": zod.string().optional().describe('Human-readable explanation of the detected search intent, present when semantic matching was used')
 })
 
 

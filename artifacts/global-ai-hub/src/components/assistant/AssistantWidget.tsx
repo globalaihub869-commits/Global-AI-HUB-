@@ -12,12 +12,22 @@ interface Action {
   href: string;
 }
 
+interface MatchedTool {
+  id: string;
+  name: string;
+  domain: string;
+  description: string;
+  url: string;
+  accentColor: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   text: string;
   actions?: Action[];
   partial?: boolean;
+  tools?: MatchedTool[];
 }
 
 /* ─── Knowledge Base ───────────────────────────────────────────────────────── */
@@ -111,6 +121,31 @@ const KB: KBEntry[] = [
     response: "Goodbye! 👋 It was great chatting with you. I'll be right here if you need anything else — just click the ✨ button in the corner. Happy exploring!",
   },
 ];
+
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+/** Calls the same semantic tool-search endpoint the Tools page uses, so Aria's
+ * recommendations always match what a live search on /tools would surface. */
+async function fetchToolMatches(query: string): Promise<{ tools: MatchedTool[]; intentSummary?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/tools?search=${encodeURIComponent(query)}`, { credentials: "include" });
+    if (!res.ok) return { tools: [] };
+    const data = await res.json();
+    return { tools: (data.tools ?? []).slice(0, 3), intentSummary: data.intentSummary };
+  } catch {
+    return { tools: [] };
+  }
+}
+
+const TOOL_INTENT_HINTS = [
+  "tool", "app", "software", "recommend", "which one", "suggest", "best for",
+  "video", "code", "image", "voice", "audio", "write", "design", "marketing", "make a", "help me",
+];
+
+function looksLikeToolIntent(input: string): boolean {
+  const lower = input.toLowerCase();
+  return TOOL_INTENT_HINTS.some((h) => lower.includes(h));
+}
 
 function findResponse(input: string): { text: string; actions?: Action[] } {
   const lower = input.toLowerCase().trim();
@@ -339,6 +374,40 @@ function MessageBubble({ msg, isTyping }: { msg: Message; isTyping: boolean }) {
           )}
         </div>
 
+        {/* Matched tool cards (semantic intent search results) */}
+        {!msg.partial && msg.tools && msg.tools.length > 0 && (
+          <div className="flex flex-col gap-2 w-full" data-testid="aria-tool-matches">
+            {msg.tools.map((tool) => (
+              <a
+                key={tool.id}
+                href={tool.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/8 hover:border-primary/40 hover:bg-primary/5 transition-all"
+                data-testid={`aria-tool-card-${tool.id}`}
+              >
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
+                  style={{ backgroundColor: tool.accentColor }}
+                >
+                  {tool.name.charAt(0)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-white truncate">{tool.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{tool.domain}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+              </a>
+            ))}
+            <a
+              href={`/tools?search=${encodeURIComponent(msg.tools[0]?.name ?? "")}`}
+              className="text-xs text-primary hover:text-primary/80 underline underline-offset-2 self-start"
+            >
+              See all matches in Tools Directory →
+            </a>
+          </div>
+        )}
+
         {/* Action chips */}
         {!msg.partial && msg.actions && msg.actions.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -413,7 +482,7 @@ export default function AssistantWidget() {
   }, [messages]);
 
   const streamMessage = useCallback(
-    (role: "assistant", fullText: string, actions?: Action[]) => {
+    (role: "assistant", fullText: string, actions?: Action[], tools?: MatchedTool[]) => {
       const id = uid();
       setAvatarState("thinking");
       setIsTyping(true);
@@ -433,7 +502,7 @@ export default function AssistantWidget() {
             const delay = chars[i - 1] === "\n" ? 60 : chars[i - 1] === "." || chars[i - 1] === "!" || chars[i - 1] === "?" ? 55 : 18;
             typeTimerRef.current = setTimeout(tick, delay);
           } else {
-            setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, partial: false, actions } : m)));
+            setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, partial: false, actions, tools } : m)));
             setIsTyping(false);
             setAvatarState("idle");
           }
@@ -454,7 +523,19 @@ export default function AssistantWidget() {
       setInput("");
 
       const { text: responseText, actions } = findResponse(trimmed);
-      setTimeout(() => streamMessage("assistant", responseText, actions), 100);
+
+      if (looksLikeToolIntent(trimmed)) {
+        fetchToolMatches(trimmed).then(({ tools, intentSummary }) => {
+          const finalText = intentSummary
+            ? `${intentSummary}\n\nHere's what I found for **"${trimmed}"**:`
+            : tools.length > 0
+              ? `Here's what I found for **"${trimmed}"**:`
+              : responseText;
+          setTimeout(() => streamMessage("assistant", finalText, actions, tools.length > 0 ? tools : undefined), 100);
+        });
+      } else {
+        setTimeout(() => streamMessage("assistant", responseText, actions), 100);
+      }
     },
     [isTyping, streamMessage],
   );

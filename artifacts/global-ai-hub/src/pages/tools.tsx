@@ -259,7 +259,7 @@ export default function Tools() {
           <div className="relative flex-1 max-w-xl">
             <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder={t("tools.searchPlaceholder")}
+              placeholder="Try: 'I want to make a video for my shop' or search by name…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="ps-11 pe-10 h-11 bg-white/5 border-white/10 focus:border-primary focus:shadow-[0_0_15px_rgba(168,85,247,0.2)] placeholder:text-muted-foreground/50 transition-all"
@@ -369,6 +369,24 @@ export default function Tools() {
             </button>
           )}
         </div>
+
+        {/* SEMANTIC INTENT BANNER */}
+        <AnimatePresence>
+          {data?.intentSummary && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-5 overflow-hidden"
+              data-testid="banner-intent-summary"
+            >
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary/15 to-cyan-500/10 border border-primary/30 text-sm text-white">
+                <Zap className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>{data.intentSummary}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* RESULTS COUNT */}
         <div className="flex items-center justify-between mb-6">

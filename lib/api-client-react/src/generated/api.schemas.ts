@@ -49,6 +49,8 @@ export interface Tool {
 export interface ToolListResponse {
   tools: Tool[];
   total: number;
+  /** Human-readable explanation of the detected search intent, present when semantic matching was used */
+  intentSummary?: string;
 }
 
 export type NewsDigestCategory = typeof NewsDigestCategory[keyof typeof NewsDigestCategory];
