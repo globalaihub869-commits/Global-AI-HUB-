@@ -18,6 +18,7 @@ import MessagingOverlay from "@/components/social/MessagingOverlay";
 import Home from "@/pages/home";
 import Tools from "@/pages/tools";
 import News from "@/pages/news";
+import AiVideoStudio from "@/pages/ai-video-studio";
 import Models from "@/pages/models";
 import Jobs from "@/pages/jobs";
 import RoiCalculator from "@/pages/roi-calculator";
@@ -120,6 +121,9 @@ function Router() {
         </Route>
         <Route path="/news">
           <Layout><News /></Layout>
+        </Route>
+        <Route path="/ai-video-studio">
+          <Layout><AiVideoStudio /></Layout>
         </Route>
         <Route path="/models">
           <Layout><Models /></Layout>

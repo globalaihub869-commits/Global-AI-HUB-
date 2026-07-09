@@ -7,10 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Clock, ExternalLink, Search, X, Dot, Newspaper, TrendingUp, Cpu, DollarSign,
   FlaskConical, Scale, Package, HardDrive, BookOpen, Building2, Zap, AlertCircle, ChevronRight,
+  Clapperboard, Sparkles,
 } from "lucide-react";
 import { useListNews } from "@workspace/api-client-react";
 import type { NewsDigest } from "@workspace/api-client-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { Link } from "wouter";
 
 const CATEGORIES = [
   { label: "All", value: "All", icon: Newspaper },
@@ -235,7 +237,28 @@ export default function News() {
           <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-3 [text-shadow:0_0_30px_rgba(168,85,247,0.2)]" data-testid="news-title">
             {t("news.title")}
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">{t("news.subtitle")}</p>
+          <p className="text-muted-foreground text-lg max-w-2xl mb-6">{t("news.subtitle")}</p>
+
+          <Link href="/ai-video-studio" data-testid="link-ai-video-studio-banner">
+            <div className="group relative rounded-2xl p-[1px] bg-gradient-to-r from-primary via-secondary to-primary overflow-hidden cursor-pointer">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl bg-[hsl(240,15%,7%)] px-5 py-4 sm:px-6 sm:py-5 group-hover:bg-[hsl(240,15%,8%)] transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[0_0_18px_rgba(168,85,247,0.4)] flex-shrink-0">
+                    <Clapperboard className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                      New <Sparkles className="w-3.5 h-3.5 text-secondary" /> AI News Video Generator
+                    </p>
+                    <p className="text-xs text-muted-foreground">Turn headlines into an avatar-led broadcast in seconds.</p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-white bg-primary/10 group-hover:bg-primary border border-primary/30 group-hover:border-primary rounded-full px-4 py-2 transition-all whitespace-nowrap">
+                  Launch Studio <ChevronRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </div>
+          </Link>
         </motion.div>
 
         {/* SEARCH + FILTERS */}

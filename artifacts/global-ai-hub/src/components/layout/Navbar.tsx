@@ -225,6 +225,7 @@ export default function Navbar() {
     { key: "nav.home", href: "/" },
     { key: "nav.tools", href: "/tools" },
     { key: "nav.news", href: "/news" },
+    { label: "AI Video Studio", href: "/ai-video-studio" },
     { key: "nav.models", href: "/models" },
     { label: "Jobs", href: "/jobs" },
     { label: "ROI Calculator", href: "/roi-calculator" },
