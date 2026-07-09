@@ -13,6 +13,7 @@ import {
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth, type ProfileType } from "@/context/AuthContext";
 import { useListTools, useListNews } from "@workspace/api-client-react";
+import ToolSocialBar from "@/components/tools/ToolSocialBar";
 
 /* ─── Personalization Config ──────────────────────────────────────────────── */
 
@@ -136,30 +137,32 @@ function PersonalizedDashboard({ profileType, name }: { profileType: ProfileType
                 ))
               : tools.length > 0
               ? tools.map((tool) => (
-                  <motion.a
+                  <motion.div
                     key={tool.id}
-                    href={tool.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     data-testid={`personalized-tool-${tool.id}`}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/8 hover:border-primary/30 hover:bg-white/[0.06] transition-all group"
+                    className="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/8 hover:border-primary/30 hover:bg-white/[0.06] transition-all group"
                   >
-                    <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                      style={{ background: `radial-gradient(circle at 30% 30%, ${tool.accentColor}, hsl(240,15%,14%))` }}
-                    >
-                      {tool.name[0]}
+                    <a href={tool.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                        style={{ background: `radial-gradient(circle at 30% 30%, ${tool.accentColor}, hsl(240,15%,14%))` }}
+                      >
+                        {tool.name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate group-hover:text-primary transition-colors">{tool.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{tool.domain}</p>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-yellow-400 flex-shrink-0">
+                        ⭐ {tool.rating}
+                      </div>
+                    </a>
+                    <div className="pl-12">
+                      <ToolSocialBar toolId={tool.id} toolName={tool.name} size="sm" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate group-hover:text-primary transition-colors">{tool.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{tool.domain}</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-yellow-400 flex-shrink-0">
-                      ⭐ {tool.rating}
-                    </div>
-                  </motion.a>
+                  </motion.div>
                 ))
               : (
                 <p className="text-muted-foreground text-sm py-4 text-center">No tools found for your profile yet.</p>

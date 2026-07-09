@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { SocialProvider } from "@/context/SocialContext";
 import NotFound from "@/pages/not-found";
 
 import Navbar from "@/components/layout/Navbar";
@@ -17,6 +19,8 @@ import Login from "@/pages/auth/login";
 import Signup from "@/pages/auth/signup";
 import Onboarding from "@/pages/auth/onboarding";
 import AccountRecovery from "@/pages/auth/account-recovery";
+import Dashboard from "@/pages/dashboard";
+import AdminDashboard from "@/pages/admin";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
@@ -44,14 +48,57 @@ function OnboardingGuard() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, navigate] = useLocation();
 
-  if (!isLoading && !isAuthenticated) {
-    navigate("/login");
-    return null;
-  }
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) navigate("/login");
+  }, [isLoading, isAuthenticated, navigate]);
+
+  if (!isLoading && !isAuthenticated) return null;
   return (
     <AuthLayout>
       <Onboarding />
     </AuthLayout>
+  );
+}
+
+function DashboardGuard() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) navigate("/login");
+  }, [isLoading, isAuthenticated, navigate]);
+
+  if (!isLoading && !isAuthenticated) return null;
+  return (
+    <Layout>
+      <Dashboard />
+    </Layout>
+  );
+}
+
+function AdminGuard() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) navigate("/login");
+  }, [isLoading, isAuthenticated, navigate]);
+
+  if (!isLoading && !isAuthenticated) return null;
+  if (!isLoading && user?.role !== "admin") {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-32 max-w-lg text-center" data-testid="admin-access-denied">
+          <h1 className="text-2xl font-display font-bold text-white mb-2">Access Restricted</h1>
+          <p className="text-muted-foreground">This area is reserved for Super Admin accounts only.</p>
+        </div>
+      </Layout>
+    );
+  }
+  return (
+    <Layout>
+      <AdminDashboard />
+    </Layout>
   );
 }
 
@@ -83,6 +130,12 @@ function Router() {
         <Route path="/account-recovery">
           <AuthLayout><AccountRecovery /></AuthLayout>
         </Route>
+        <Route path="/dashboard">
+          <DashboardGuard />
+        </Route>
+        <Route path="/admin">
+          <AdminGuard />
+        </Route>
         <Route>
           <Layout><NotFound /></Layout>
         </Route>
@@ -96,14 +149,16 @@ function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
-            <Toaster />
-          </TooltipProvider>
-        </QueryClientProvider>
+        <SocialProvider>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </TooltipProvider>
+          </QueryClientProvider>
+        </SocialProvider>
       </AuthProvider>
     </LanguageProvider>
   );

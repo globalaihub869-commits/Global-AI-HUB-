@@ -13,6 +13,7 @@ import {
 import { useListTools } from "@workspace/api-client-react";
 import type { Tool } from "@workspace/api-client-react";
 import { useLanguage } from "@/context/LanguageContext";
+import ToolSocialBar from "@/components/tools/ToolSocialBar";
 
 type Pricing = "Free" | "Freemium" | "Premium";
 type ToolType = "Text" | "Image" | "Audio" | "Code" | "Video" | "Data";
@@ -144,20 +145,25 @@ function ToolCard({ tool, idx }: { tool: Tool; idx: number }) {
           </div>
         )}
 
-        <CardFooter className="px-5 pt-3 pb-5 border-t border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 text-xs text-yellow-400">
-              <Star className="w-3.5 h-3.5 fill-yellow-400" />
-              <span className="font-semibold">{tool.rating}</span>
+        <CardFooter className="px-5 pt-3 pb-5 border-t border-white/5 flex flex-col gap-3">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 text-xs text-yellow-400">
+                <Star className="w-3.5 h-3.5 fill-yellow-400" />
+                <span className="font-semibold">{tool.rating}</span>
+              </div>
+              <span className="text-xs text-muted-foreground/60">{tool.users} users</span>
             </div>
-            <span className="text-xs text-muted-foreground/60">{tool.users} users</span>
+            <Button size="sm" asChild className="h-8 px-3 text-xs bg-white/8 text-white hover:bg-primary hover:text-white border border-white/10 hover:border-primary transition-all group/btn" data-testid={`btn-visit-${tool.id}`}>
+              <a href={tool.url} target="_blank" rel="noopener noreferrer">
+                {t("tools.visit")}
+                <ExternalLink className="w-3 h-3 ml-1.5 group-hover/btn:-translate-y-0.5 group-hover/btn:translate-x-0.5 transition-transform" />
+              </a>
+            </Button>
           </div>
-          <Button size="sm" asChild className="h-8 px-3 text-xs bg-white/8 text-white hover:bg-primary hover:text-white border border-white/10 hover:border-primary transition-all group/btn" data-testid={`btn-visit-${tool.id}`}>
-            <a href={tool.url} target="_blank" rel="noopener noreferrer">
-              {t("tools.visit")}
-              <ExternalLink className="w-3 h-3 ml-1.5 group-hover/btn:-translate-y-0.5 group-hover/btn:translate-x-0.5 transition-transform" />
-            </a>
-          </Button>
+          <div className="w-full pt-2 border-t border-white/5">
+            <ToolSocialBar toolId={tool.id} toolName={tool.name} />
+          </div>
         </CardFooter>
       </Card>
     </motion.div>

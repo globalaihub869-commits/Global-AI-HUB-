@@ -1,0 +1,1 @@
+- [Global AI Hub roles & social state](global-ai-hub-roles-social.md) — admin role via email prefix "admin"; social/bookmarks/points are localStorage-only, not backend-persisted.

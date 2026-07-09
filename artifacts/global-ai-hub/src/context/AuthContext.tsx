@@ -1,12 +1,14 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 export type ProfileType = "developer" | "business" | "student";
+export type Role = "admin" | "user";
 
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
   profileType: ProfileType | null;
+  role: Role;
   createdAt: string;
 }
 

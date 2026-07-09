@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import {
   CircuitBoard, Menu, X, Globe, ChevronDown, Check,
   LogOut, User, Code2, Briefcase, GraduationCap, Settings,
+  LayoutDashboard, ShieldAlert,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,26 @@ function UserMenu() {
 
             {/* Menu items */}
             <div className="py-1">
+              <Link
+                href="/dashboard"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+                data-testid="user-menu-dashboard"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                My Dashboard
+              </Link>
+              {user.role === "admin" && (
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-secondary hover:text-secondary/80 hover:bg-secondary/5 transition-colors"
+                  data-testid="user-menu-admin"
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  Super Admin Panel
+                </Link>
+              )}
               <Link
                 href="/onboarding"
                 onClick={() => setOpen(false)}

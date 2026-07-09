@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 
 export type ProfileType = "developer" | "business" | "student";
+export type Role = "admin" | "user";
 
 export interface User {
   id: string;
@@ -9,6 +10,7 @@ export interface User {
   name: string;
   passwordHash: string;
   profileType: ProfileType | null;
+  role: Role;
   createdAt: Date;
 }
 
@@ -17,6 +19,7 @@ export interface PublicUser {
   email: string;
   name: string;
   profileType: ProfileType | null;
+  role: Role;
   createdAt: string;
 }
 
@@ -29,6 +32,7 @@ export function toPublic(user: User): PublicUser {
     email: user.email,
     name: user.name,
     profileType: user.profileType,
+    role: user.role,
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -42,12 +46,15 @@ export async function createUser(
   if (existing) throw new Error("EMAIL_TAKEN");
 
   const passwordHash = await bcrypt.hash(password, 10);
+  const normalizedEmail = email.toLowerCase().trim();
   const user: User = {
     id: randomUUID(),
-    email: email.toLowerCase().trim(),
+    email: normalizedEmail,
     name: name.trim(),
     passwordHash,
     profileType: null,
+    // Demo-only role assignment: any email local-part starting with "admin" becomes a Super Admin.
+    role: normalizedEmail.startsWith("admin") ? "admin" : "user",
     createdAt: new Date(),
   };
 
