@@ -223,3 +223,157 @@ export const ApplyToJobResponse = zod.object({
 })
 
 
+/**
+ * @summary List global community chat messages
+ */
+export const ListChatMessagesQueryParams = zod.object({
+  "after": zod.coerce.string().optional().describe('ISO timestamp; only return messages after this time')
+})
+
+export const ListChatMessagesResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "userName": zod.string(),
+  "text": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Post a message to the global community chat
+ */
+export const PostChatMessageBody = zod.object({
+  "text": zod.string()
+})
+
+export const PostChatMessageResponse = zod.object({
+  "message": zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "userName": zod.string(),
+  "text": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary List the current user's direct message conversations
+ */
+export const ListConversationsResponse = zod.object({
+  "conversations": zod.array(zod.object({
+  "id": zod.string(),
+  "jobId": zod.string().nullable(),
+  "jobTitle": zod.string().nullable(),
+  "participantIds": zod.array(zod.string()),
+  "participantNames": zod.record(zod.string(), zod.string()),
+  "lastMessage": zod.string(),
+  "lastMessageAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Start (or continue) a direct message conversation with a vendor
+ */
+export const StartConversationBody = zod.object({
+  "jobId": zod.string().optional(),
+  "jobTitle": zod.string().optional(),
+  "vendorName": zod.string(),
+  "text": zod.string()
+})
+
+export const StartConversationResponse = zod.object({
+  "conversation": zod.object({
+  "id": zod.string(),
+  "jobId": zod.string().nullable(),
+  "jobTitle": zod.string().nullable(),
+  "participantIds": zod.array(zod.string()),
+  "participantNames": zod.record(zod.string(), zod.string()),
+  "lastMessage": zod.string(),
+  "lastMessageAt": zod.string()
+})
+})
+
+
+/**
+ * @summary List messages within a conversation
+ */
+export const ListConversationMessagesParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ListConversationMessagesResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "conversationId": zod.string(),
+  "senderId": zod.string(),
+  "senderName": zod.string(),
+  "text": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Send a message within an existing conversation
+ */
+export const SendConversationMessageParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const SendConversationMessageBody = zod.object({
+  "text": zod.string()
+})
+
+export const SendConversationMessageResponse = zod.object({
+  "message": zod.object({
+  "id": zod.string(),
+  "conversationId": zod.string(),
+  "senderId": zod.string(),
+  "senderName": zod.string(),
+  "text": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary List recent platform activity feed events
+ */
+export const ListActivityQueryParams = zod.object({
+  "after": zod.coerce.string().optional().describe('ISO timestamp; only return events after this time')
+})
+
+export const ListActivityResponse = zod.object({
+  "events": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['like', 'job_posted', 'tool_visited', 'job_applied', 'chat_joined']),
+  "actorName": zod.string(),
+  "targetName": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Record a new activity feed event for the current user
+ */
+export const RecordActivityBody = zod.object({
+  "type": zod.enum(['like', 'job_posted', 'tool_visited', 'job_applied', 'chat_joined']),
+  "targetName": zod.string()
+})
+
+export const RecordActivityResponse = zod.object({
+  "event": zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['like', 'job_posted', 'tool_visited', 'job_applied', 'chat_joined']),
+  "actorName": zod.string(),
+  "targetName": zod.string(),
+  "createdAt": zod.string()
+})
+})
+
+

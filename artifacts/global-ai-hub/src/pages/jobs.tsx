@@ -14,12 +14,14 @@ import {
 } from "@/components/ui/select";
 import {
   Search, MapPin, Briefcase, Wifi, DollarSign, X, Plus,
-  Building2, ChevronRight, AlertCircle, CheckCircle2, Send,
+  Building2, ChevronRight, AlertCircle, CheckCircle2, Send, MessageCircle,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useListJobs, usePostJob, useApplyToJob } from "@workspace/api-client-react";
 import type { Job } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { openVendorConversation } from "@/components/social/MessagingOverlay";
 
 const JOB_CATEGORIES = ["Engineering", "Data & ML", "Design", "Product", "Marketing", "Support"] as const;
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance"] as const;
@@ -58,7 +60,7 @@ function JobCardSkeleton() {
   );
 }
 
-function JobCard({ job, idx, onApply }: { job: Job; idx: number; onApply: (job: Job) => void }) {
+function JobCard({ job, idx, onApply, onMessage }: { job: Job; idx: number; onApply: (job: Job) => void; onMessage: (job: Job) => void }) {
   return (
     <motion.div
       layout
@@ -108,16 +110,27 @@ function JobCard({ job, idx, onApply }: { job: Job; idx: number; onApply: (job: 
           )}
         </CardContent>
 
-        <CardFooter className="px-5 pt-3 pb-5 border-t border-white/5 flex items-center justify-between">
+        <CardFooter className="px-5 pt-3 pb-5 border-t border-white/5 flex items-center justify-between gap-2">
           <Badge variant="outline" className="text-xs border-primary/20 text-primary/80 bg-primary/5">{job.category}</Badge>
-          <Button
-            size="sm"
-            onClick={() => onApply(job)}
-            className="h-8 px-4 text-xs bg-white/8 text-white hover:bg-primary hover:text-white border border-white/10 hover:border-primary transition-all"
-            data-testid={`btn-apply-${job.id}`}
-          >
-            Apply
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onMessage(job)}
+              className="h-8 px-3 text-xs border-white/10 text-muted-foreground hover:border-secondary hover:text-secondary transition-all gap-1.5"
+              data-testid={`btn-message-vendor-${job.id}`}
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> Message
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => onApply(job)}
+              className="h-8 px-4 text-xs bg-white/8 text-white hover:bg-primary hover:text-white border border-white/10 hover:border-primary transition-all"
+              data-testid={`btn-apply-${job.id}`}
+            >
+              Apply
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </motion.div>
@@ -278,6 +291,8 @@ function ApplyDialog({ job, onOpenChange }: { job: Job | null; onOpenChange: (v:
 }
 
 export default function Jobs() {
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("All");
   const [postOpen, setPostOpen] = useState(false);
@@ -290,6 +305,14 @@ export default function Jobs() {
 
   const jobs = useMemo(() => data?.jobs ?? [], [data]);
   const clearAll = () => { setSearch(""); setCategory("All"); };
+
+  const handleMessage = (job: Job) => {
+    if (!isAuthenticated) {
+      toast({ title: "Sign in required", description: "Log in to message vendors about job listings.", variant: "destructive" });
+      return;
+    }
+    openVendorConversation({ vendorName: job.company, jobId: job.id, jobTitle: job.title });
+  };
 
   return (
     <div className="min-h-screen pt-24 pb-20">
@@ -363,7 +386,7 @@ export default function Jobs() {
               </div>
             ) : jobs.length > 0 ? (
               <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {jobs.map((job, idx) => <JobCard key={job.id} job={job} idx={idx} onApply={setApplyJob} />)}
+                {jobs.map((job, idx) => <JobCard key={job.id} job={job} idx={idx} onApply={setApplyJob} onMessage={handleMessage} />)}
               </motion.div>
             ) : (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-28 text-center" data-testid="empty-jobs-state">

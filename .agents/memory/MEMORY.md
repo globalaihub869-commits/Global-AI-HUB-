@@ -1,3 +1,4 @@
 - [Global AI Hub roles & social state](global-ai-hub-roles-social.md) — admin role via email prefix "admin"; social/bookmarks/points are localStorage-only, not backend-persisted.
 - [Global AI Hub tool intent search](global-ai-hub-tool-intent-search.md) — natural-language tool search uses a shared server-side intent map; reuse it for any widget needing tool recommendations.
 - [React Query mutation invalidation](react-query-mutation-invalidation.md) — orval-generated mutation hooks don't auto-refresh related list queries; must call `queryClient.invalidateQueries` in `onSuccess`.
+- [Orval inline body schema collisions](openapi-orval-duplicate-exports.md) — always `$ref` a named schema for request bodies, never inline `type: object`, or lib/api-zod typecheck fails with TS2308.

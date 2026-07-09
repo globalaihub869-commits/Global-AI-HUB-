@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { jobsData, type JobRecord } from "../data/jobs";
+import { recordActivity } from "../lib/social-store.js";
 
 const router: IRouter = Router();
 
@@ -99,6 +100,7 @@ router.post("/jobs", (req, res) => {
 
   jobs = [job, ...jobs];
   req.log.info({ jobId: job.id }, "job posted");
+  recordActivity("job_posted", job.company, job.title);
   return res.status(201).json({ job });
 });
 
@@ -127,6 +129,7 @@ router.post("/jobs/:id/apply", (req, res) => {
   };
   applications.push(application);
   req.log.info({ jobId: job.id, applicationId: application.id }, "job application submitted");
+  recordActivity("job_applied", name, job.title);
 
   return res.status(201).json({ success: true, applicationId: application.id });
 });

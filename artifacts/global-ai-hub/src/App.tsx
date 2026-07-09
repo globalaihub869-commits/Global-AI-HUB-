@@ -13,6 +13,8 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AssistantWidget from "@/components/assistant/AssistantWidget";
 import SupportAgentWidget from "@/components/support/SupportAgentWidget";
+import ChatWidget from "@/components/social/ChatWidget";
+import MessagingOverlay from "@/components/social/MessagingOverlay";
 import Home from "@/pages/home";
 import Tools from "@/pages/tools";
 import News from "@/pages/news";
@@ -152,6 +154,8 @@ function Router() {
       </Switch>
       <AssistantWidget />
       <SupportAgentWidget />
+      <ChatWidget />
+      <MessagingOverlay />
     </>
   );
 }

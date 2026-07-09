@@ -6,7 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './activityEvent';
+export * from './activityEventType';
+export * from './activityInput';
+export * from './activityInputType';
 export * from './applyToJob201';
+export * from './chatMessage';
+export * from './chatMessageInput';
+export * from './conversation';
+export * from './conversationMessageInput';
+export * from './conversationParticipantNames';
+export * from './directMessage';
 export * from './errorResponse';
 export * from './healthStatus';
 export * from './job';
@@ -15,6 +25,12 @@ export * from './jobInput';
 export * from './jobInputType';
 export * from './jobListResponse';
 export * from './jobType';
+export * from './listActivity200';
+export * from './listActivityParams';
+export * from './listChatMessages200';
+export * from './listChatMessagesParams';
+export * from './listConversationMessages200';
+export * from './listConversations200';
 export * from './listJobsParams';
 export * from './listNewsParams';
 export * from './listToolsParams';
@@ -23,7 +39,12 @@ export * from './listToolsType';
 export * from './newsDigest';
 export * from './newsDigestCategory';
 export * from './newsListResponse';
+export * from './postChatMessage201';
 export * from './postJob201';
+export * from './recordActivity201';
+export * from './sendConversationMessage201';
+export * from './startConversation201';
+export * from './startConversationInput';
 export * from './tool';
 export * from './toolListResponse';
 export * from './toolOutputTypesItem';

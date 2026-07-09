@@ -4,6 +4,7 @@ import toolsRouter from "./tools.js";
 import newsRouter from "./news.js";
 import authRouter from "./auth.js";
 import jobsRouter from "./jobs.js";
+import socialRouter from "./social.js";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(healthRouter);
 router.use(toolsRouter);
 router.use(newsRouter);
 router.use(jobsRouter);
+router.use(socialRouter);
 
 export default router;

@@ -111,6 +111,87 @@ export interface JobApplicationInput {
   message?: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface DirectMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  createdAt: string;
+}
+
+export type ConversationParticipantNames = {[key: string]: string};
+
+export interface Conversation {
+  id: string;
+  /** @nullable */
+  jobId: string | null;
+  /** @nullable */
+  jobTitle: string | null;
+  participantIds: string[];
+  participantNames: ConversationParticipantNames;
+  lastMessage: string;
+  lastMessageAt: string;
+}
+
+export interface ChatMessageInput {
+  text: string;
+}
+
+export interface StartConversationInput {
+  jobId?: string;
+  jobTitle?: string;
+  vendorName: string;
+  text: string;
+}
+
+export interface ConversationMessageInput {
+  text: string;
+}
+
+export type ActivityInputType = typeof ActivityInputType[keyof typeof ActivityInputType];
+
+
+export const ActivityInputType = {
+  like: 'like',
+  job_posted: 'job_posted',
+  tool_visited: 'tool_visited',
+  job_applied: 'job_applied',
+  chat_joined: 'chat_joined',
+} as const;
+
+export interface ActivityInput {
+  type: ActivityInputType;
+  targetName: string;
+}
+
+export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType];
+
+
+export const ActivityEventType = {
+  like: 'like',
+  job_posted: 'job_posted',
+  tool_visited: 'tool_visited',
+  job_applied: 'job_applied',
+  chat_joined: 'chat_joined',
+} as const;
+
+export interface ActivityEvent {
+  id: string;
+  type: ActivityEventType;
+  actorName: string;
+  targetName: string;
+  createdAt: string;
+}
+
 export type NewsDigestCategory = typeof NewsDigestCategory[keyof typeof NewsDigestCategory];
 
 
@@ -222,5 +303,51 @@ export type PostJob201 = {
 export type ApplyToJob201 = {
   success: boolean;
   applicationId: string;
+};
+
+export type ListChatMessagesParams = {
+/**
+ * ISO timestamp; only return messages after this time
+ */
+after?: string;
+};
+
+export type ListChatMessages200 = {
+  messages: ChatMessage[];
+};
+
+export type PostChatMessage201 = {
+  message: ChatMessage;
+};
+
+export type ListConversations200 = {
+  conversations: Conversation[];
+};
+
+export type StartConversation201 = {
+  conversation: Conversation;
+};
+
+export type ListConversationMessages200 = {
+  messages: DirectMessage[];
+};
+
+export type SendConversationMessage201 = {
+  message: DirectMessage;
+};
+
+export type ListActivityParams = {
+/**
+ * ISO timestamp; only return events after this time
+ */
+after?: string;
+};
+
+export type ListActivity200 = {
+  events: ActivityEvent[];
+};
+
+export type RecordActivity201 = {
+  event: ActivityEvent;
 };
 

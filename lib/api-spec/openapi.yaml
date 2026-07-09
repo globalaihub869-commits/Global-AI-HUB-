@@ -16,6 +16,8 @@ tags:
     description: AI News digests
   - name: jobs
     description: AI industry job board
+  - name: social
+    description: Community chat, direct messaging, and activity feed
 paths:
   /healthz:
     get:
@@ -244,6 +246,264 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /chat/messages:
+    get:
+      operationId: listChatMessages
+      tags: [social]
+      summary: List global community chat messages
+      parameters:
+        - name: after
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ISO timestamp; only return messages after this time
+      responses:
+        "200":
+          description: Chat messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ChatMessage"
+                required: [messages]
+    post:
+      operationId: postChatMessage
+      tags: [social]
+      summary: Post a message to the global community chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "201":
+          description: Message posted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    $ref: "#/components/schemas/ChatMessage"
+                required: [message]
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /conversations:
+    get:
+      operationId: listConversations
+      tags: [social]
+      summary: List the current user's direct message conversations
+      responses:
+        "200":
+          description: Conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Conversation"
+                required: [conversations]
+        "401":
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: startConversation
+      tags: [social]
+      summary: Start (or continue) a direct message conversation with a vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartConversationInput"
+      responses:
+        "201":
+          description: Conversation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversation:
+                    $ref: "#/components/schemas/Conversation"
+                required: [conversation]
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /conversations/{id}/messages:
+    get:
+      operationId: listConversationMessages
+      tags: [social]
+      summary: List messages within a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Direct messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DirectMessage"
+                required: [messages]
+        "401":
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: sendConversationMessage
+      tags: [social]
+      summary: Send a message within an existing conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversationMessageInput"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    $ref: "#/components/schemas/DirectMessage"
+                required: [message]
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /activity:
+    get:
+      operationId: listActivity
+      tags: [social]
+      summary: List recent platform activity feed events
+      parameters:
+        - name: after
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ISO timestamp; only return events after this time
+      responses:
+        "200":
+          description: Activity events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ActivityEvent"
+                required: [events]
+    post:
+      operationId: recordActivity
+      tags: [social]
+      summary: Record a new activity feed event for the current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityInput"
+      responses:
+        "201":
+          description: Event recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  event:
+                    $ref: "#/components/schemas/ActivityEvent"
+                required: [event]
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -422,6 +682,143 @@ components:
       required:
         - name
         - email
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        userName:
+          type: string
+        text:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - userName
+        - text
+        - createdAt
+
+    DirectMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        conversationId:
+          type: string
+        senderId:
+          type: string
+        senderName:
+          type: string
+        text:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - conversationId
+        - senderId
+        - senderName
+        - text
+        - createdAt
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+        jobId:
+          type: [string, "null"]
+        jobTitle:
+          type: [string, "null"]
+        participantIds:
+          type: array
+          items:
+            type: string
+        participantNames:
+          type: object
+          additionalProperties:
+            type: string
+        lastMessage:
+          type: string
+        lastMessageAt:
+          type: string
+      required:
+        - id
+        - jobId
+        - jobTitle
+        - participantIds
+        - participantNames
+        - lastMessage
+        - lastMessageAt
+
+    ChatMessageInput:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+
+    StartConversationInput:
+      type: object
+      properties:
+        jobId:
+          type: string
+        jobTitle:
+          type: string
+        vendorName:
+          type: string
+        text:
+          type: string
+      required:
+        - vendorName
+        - text
+
+    ConversationMessageInput:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+
+    ActivityInput:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [like, job_posted, tool_visited, job_applied, chat_joined]
+        targetName:
+          type: string
+      required:
+        - type
+        - targetName
+
+    ActivityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [like, job_posted, tool_visited, job_applied, chat_joined]
+        actorName:
+          type: string
+        targetName:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - type
+        - actorName
+        - targetName
+        - createdAt
 
     NewsDigest:
       type: object
