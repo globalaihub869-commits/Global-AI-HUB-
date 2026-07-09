@@ -5,10 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import {
   Sparkles, Play, Pause, Download, Share2, Wand2, Mic, User, Bot,
   Radio, Clapperboard, ArrowLeft, RefreshCw, Volume2, Captions, Loader2,
 } from "lucide-react";
+
+const PLATFORM_LABELS: Record<string, string> = {
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  instagram: "Instagram",
+  x: "X (Twitter)",
+};
+
+function getConnectedPlatforms(userId: string | null): string[] {
+  try {
+    const raw = localStorage.getItem(`gah-social-connections:${userId ?? "guest"}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 type Avatar = {
   id: string;
@@ -76,6 +95,7 @@ function Waveform({ playing }: { playing: boolean }) {
 
 export default function AiVideoStudio() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [script, setScript] = useState(SAMPLE_SCRIPT);
   const [avatarId, setAvatarId] = useState<string>(AVATARS[0].id);
   const [tone, setTone] = useState<(typeof VOICE_TONES)[number]>(VOICE_TONES[0]);
@@ -158,7 +178,19 @@ export default function AiVideoStudio() {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(`${window.location.origin}/ai-video-studio#${avatar.id}`).catch(() => {});
     }
-    toast({ title: "Link copied", description: "Broadcast link copied to clipboard." });
+    const connected = getConnectedPlatforms(user?.id ?? null);
+    if (connected.length === 0) {
+      toast({
+        title: "Link copied",
+        description: "Broadcast link copied to clipboard. Connect a social account on your Dashboard to enable one-click auto-sharing.",
+      });
+      return;
+    }
+    const names = connected.map((p) => PLATFORM_LABELS[p] ?? p).join(", ");
+    toast({
+      title: "Shared (simulated)",
+      description: `Link copied and a simulated share was queued for: ${names}. Real posting isn't wired up yet.`,
+    });
   };
 
   const format = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;

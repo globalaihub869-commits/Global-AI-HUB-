@@ -9,6 +9,7 @@ import { useSocial } from "@/context/SocialContext";
 import { useListTools } from "@workspace/api-client-react";
 import ToolSocialBar from "@/components/tools/ToolSocialBar";
 import ActivityFeed from "@/components/social/ActivityFeed";
+import SocialConnections from "@/components/social/SocialConnections";
 
 function tierFor(points: number) {
   if (points >= 500) return { label: "Visionary", color: "text-secondary border-secondary/40 bg-secondary/10", next: null as number | null };
@@ -109,8 +110,9 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <ActivityFeed />
+        <SocialConnections />
       </div>
 
       {/* Bookmarked Tools */}
