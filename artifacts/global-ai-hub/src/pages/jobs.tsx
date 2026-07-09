@@ -22,6 +22,7 @@ import type { Job } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { openVendorConversation } from "@/components/social/MessagingOverlay";
+import ToolSocialBar from "@/components/tools/ToolSocialBar";
 
 const JOB_CATEGORIES = ["Engineering", "Data & ML", "Design", "Product", "Marketing", "Support"] as const;
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance"] as const;
@@ -110,7 +111,11 @@ function JobCard({ job, idx, onApply, onMessage }: { job: Job; idx: number; onAp
           )}
         </CardContent>
 
-        <CardFooter className="px-5 pt-3 pb-5 border-t border-white/5 flex items-center justify-between gap-2">
+        <div className="px-5 pb-3 pt-1 border-t border-white/5">
+          <ToolSocialBar toolId={`job-${job.id}`} toolName={job.title} size="sm" />
+        </div>
+
+        <CardFooter className="px-5 pt-0 pb-5 flex items-center justify-between gap-2">
           <Badge variant="outline" className="text-xs border-primary/20 text-primary/80 bg-primary/5">{job.category}</Badge>
           <div className="flex items-center gap-2">
             <Button
