@@ -504,6 +504,119 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /tokens/me:
+    get:
+      operationId: getMyTokenBalance
+      tags: [social]
+      summary: Get the current user's AI Hub Token balance and level
+      responses:
+        "200":
+          description: Token balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenBalance"
+        "401":
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tokens/earn:
+    post:
+      operationId: earnTokens
+      tags: [social]
+      summary: Award AI Hub Tokens to the current user for a platform engagement action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EarnTokensInput"
+      responses:
+        "201":
+          description: Tokens awarded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenBalance"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [social]
+      summary: Get the top active users/vendors ranked by AI Hub Tokens
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+
+  /rewards:
+    get:
+      operationId: listRewards
+      tags: [social]
+      summary: List redeemable rewards in the AI Hub Tokens catalog
+      responses:
+        "200":
+          description: Rewards catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RewardsResponse"
+
+  /rewards/{id}/redeem:
+    post:
+      operationId: redeemReward
+      tags: [social]
+      summary: Redeem a reward using AI Hub Tokens (simulated)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Reward redeemed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RewardRedemption"
+        "400":
+          description: Insufficient balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Reward not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -819,6 +932,103 @@ components:
         - actorName
         - targetName
         - createdAt
+
+    TokenBalance:
+      type: object
+      properties:
+        balance:
+          type: integer
+        level:
+          type: string
+      required:
+        - balance
+        - level
+
+    EarnTokensInput:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [like, comment, share, bookmark, tool_visited, watched_news, video_generated, chat_message, job_posted, job_applied]
+        targetName:
+          type: string
+      required:
+        - action
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: string
+        name:
+          type: string
+        tokens:
+          type: integer
+        level:
+          type: string
+        isCurrentUser:
+          type: boolean
+      required:
+        - rank
+        - userId
+        - name
+        - tokens
+        - level
+        - isCurrentUser
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+      required:
+        - entries
+
+    Reward:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        cost:
+          type: integer
+        icon:
+          type: string
+          enum: [badge, credit, spotlight, swag, priority]
+      required:
+        - id
+        - name
+        - description
+        - cost
+        - icon
+
+    RewardsResponse:
+      type: object
+      properties:
+        rewards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reward"
+      required:
+        - rewards
+
+    RewardRedemption:
+      type: object
+      properties:
+        balance:
+          type: integer
+        reward:
+          $ref: "#/components/schemas/Reward"
+      required:
+        - balance
+        - reward
 
     NewsDigest:
       type: object

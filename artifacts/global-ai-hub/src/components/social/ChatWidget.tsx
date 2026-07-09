@@ -4,6 +4,7 @@ import { MessagesSquare, X, Send, Users } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { useListChatMessages, usePostChatMessage } from "@workspace/api-client-react";
+import { useEarnTokens } from "@/hooks/useEarnTokens";
 
 export default function ChatWidget() {
   const { isAuthenticated } = useAuth();
@@ -20,6 +21,7 @@ export default function ChatWidget() {
     { query: { queryKey: ["listChatMessages"], refetchInterval: open ? 4000 : 15000 } },
   );
   const postMessage = usePostChatMessage();
+  const earnTokens = useEarnTokens();
 
   const messages = data?.messages ?? [];
 
@@ -49,6 +51,7 @@ export default function ChatWidget() {
         onSuccess: () => {
           setInput("");
           queryClient.invalidateQueries({ queryKey: ["listChatMessages"] });
+          earnTokens("chat_message");
         },
       },
     );

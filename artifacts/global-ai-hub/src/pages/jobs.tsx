@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import { openVendorConversation } from "@/components/social/MessagingOverlay";
 import ToolSocialBar from "@/components/tools/ToolSocialBar";
+import { useEarnTokens } from "@/hooks/useEarnTokens";
 
 const JOB_CATEGORIES = ["Engineering", "Data & ML", "Design", "Product", "Marketing", "Support"] as const;
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance"] as const;
@@ -146,6 +147,7 @@ function PostJobDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const postJob = usePostJob();
+  const earnTokens = useEarnTokens();
   const [form, setForm] = useState({
     title: "", company: "", category: JOB_CATEGORIES[0] as string, type: JOB_TYPES[0] as string,
     location: "", remote: false, salaryRange: "", description: "", tags: "",
@@ -182,6 +184,7 @@ function PostJobDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
         onSuccess: () => {
           toast({ title: "Job posted!", description: `${form.title} is now live on the board.` });
           queryClient.invalidateQueries({ queryKey: ["listJobs"] });
+          earnTokens("job_posted", form.title);
           reset();
           onOpenChange(false);
         },
@@ -235,6 +238,7 @@ function PostJobDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v
 function ApplyDialog({ job, onOpenChange }: { job: Job | null; onOpenChange: (v: boolean) => void }) {
   const { toast } = useToast();
   const applyToJob = useApplyToJob();
+  const earnTokens = useEarnTokens();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -255,7 +259,10 @@ function ApplyDialog({ job, onOpenChange }: { job: Job | null; onOpenChange: (v:
     applyToJob.mutate(
       { id: job.id, data: { name, email, message } },
       {
-        onSuccess: () => setSubmitted(true),
+        onSuccess: () => {
+          setSubmitted(true);
+          earnTokens("job_applied", job.title);
+        },
         onError: () => toast({ title: "Application failed", description: "Please try again.", variant: "destructive" }),
       },
     );

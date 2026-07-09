@@ -24,11 +24,13 @@ import type {
   ApplyToJob201,
   ChatMessageInput,
   ConversationMessageInput,
+  EarnTokensInput,
   ErrorResponse,
   HealthStatus,
   JobApplicationInput,
   JobInput,
   JobListResponse,
+  LeaderboardResponse,
   ListActivity200,
   ListActivityParams,
   ListChatMessages200,
@@ -43,9 +45,12 @@ import type {
   PostChatMessage201,
   PostJob201,
   RecordActivity201,
+  RewardRedemption,
+  RewardsResponse,
   SendConversationMessage201,
   StartConversation201,
   StartConversationInput,
+  TokenBalance,
   Tool,
   ToolListResponse
 } from './api.schemas';
@@ -1304,5 +1309,376 @@ export const useRecordActivity = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getRecordActivityMutationOptions(options));
+    }
+
+export const getGetMyTokenBalanceUrl = () => {
+
+
+
+
+  return `/api/tokens/me`
+}
+
+/**
+ * @summary Get the current user's AI Hub Token balance and level
+ */
+export const getMyTokenBalance = async ( options?: RequestInit): Promise<TokenBalance> => {
+
+  return customFetch<TokenBalance>(getGetMyTokenBalanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyTokenBalanceQueryKey = () => {
+    return [
+    `/api/tokens/me`
+    ] as const;
+    }
+
+
+export const getGetMyTokenBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getMyTokenBalance>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyTokenBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyTokenBalanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyTokenBalance>>> = ({ signal }) => getMyTokenBalance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyTokenBalance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyTokenBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getMyTokenBalance>>>
+export type GetMyTokenBalanceQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get the current user's AI Hub Token balance and level
+ */
+
+export function useGetMyTokenBalance<TData = Awaited<ReturnType<typeof getMyTokenBalance>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyTokenBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyTokenBalanceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getEarnTokensUrl = () => {
+
+
+
+
+  return `/api/tokens/earn`
+}
+
+/**
+ * @summary Award AI Hub Tokens to the current user for a platform engagement action
+ */
+export const earnTokens = async (earnTokensInput: EarnTokensInput, options?: RequestInit): Promise<TokenBalance> => {
+
+  return customFetch<TokenBalance>(getEarnTokensUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(earnTokensInput)
+  }
+);}
+
+
+
+
+export const getEarnTokensMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof earnTokens>>, TError,{data: BodyType<EarnTokensInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof earnTokens>>, TError,{data: BodyType<EarnTokensInput>}, TContext> => {
+
+const mutationKey = ['earnTokens'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof earnTokens>>, {data: BodyType<EarnTokensInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  earnTokens(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EarnTokensMutationResult = NonNullable<Awaited<ReturnType<typeof earnTokens>>>
+    export type EarnTokensMutationBody = BodyType<EarnTokensInput>
+    export type EarnTokensMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Award AI Hub Tokens to the current user for a platform engagement action
+ */
+export const useEarnTokens = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof earnTokens>>, TError,{data: BodyType<EarnTokensInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof earnTokens>>,
+        TError,
+        {data: BodyType<EarnTokensInput>},
+        TContext
+      > => {
+      return useMutation(getEarnTokensMutationOptions(options));
+    }
+
+export const getGetLeaderboardUrl = () => {
+
+
+
+
+  return `/api/leaderboard`
+}
+
+/**
+ * @summary Get the top active users/vendors ranked by AI Hub Tokens
+ */
+export const getLeaderboard = async ( options?: RequestInit): Promise<LeaderboardResponse> => {
+
+  return customFetch<LeaderboardResponse>(getGetLeaderboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLeaderboardQueryKey = () => {
+    return [
+    `/api/leaderboard`
+    ] as const;
+    }
+
+
+export const getGetLeaderboardQueryOptions = <TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLeaderboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLeaderboard>>> = ({ signal }) => getLeaderboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLeaderboardQueryResult = NonNullable<Awaited<ReturnType<typeof getLeaderboard>>>
+export type GetLeaderboardQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the top active users/vendors ranked by AI Hub Tokens
+ */
+
+export function useGetLeaderboard<TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLeaderboardQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListRewardsUrl = () => {
+
+
+
+
+  return `/api/rewards`
+}
+
+/**
+ * @summary List redeemable rewards in the AI Hub Tokens catalog
+ */
+export const listRewards = async ( options?: RequestInit): Promise<RewardsResponse> => {
+
+  return customFetch<RewardsResponse>(getListRewardsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRewardsQueryKey = () => {
+    return [
+    `/api/rewards`
+    ] as const;
+    }
+
+
+export const getListRewardsQueryOptions = <TData = Awaited<ReturnType<typeof listRewards>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRewards>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRewardsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRewards>>> = ({ signal }) => listRewards({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRewards>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRewardsQueryResult = NonNullable<Awaited<ReturnType<typeof listRewards>>>
+export type ListRewardsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List redeemable rewards in the AI Hub Tokens catalog
+ */
+
+export function useListRewards<TData = Awaited<ReturnType<typeof listRewards>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRewards>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRewardsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRedeemRewardUrl = (id: string,) => {
+
+
+
+
+  return `/api/rewards/${id}/redeem`
+}
+
+/**
+ * @summary Redeem a reward using AI Hub Tokens (simulated)
+ */
+export const redeemReward = async (id: string, options?: RequestInit): Promise<RewardRedemption> => {
+
+  return customFetch<RewardRedemption>(getRedeemRewardUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRedeemRewardMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemReward>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof redeemReward>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['redeemReward'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof redeemReward>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  redeemReward(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RedeemRewardMutationResult = NonNullable<Awaited<ReturnType<typeof redeemReward>>>
+
+    export type RedeemRewardMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Redeem a reward using AI Hub Tokens (simulated)
+ */
+export const useRedeemReward = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemReward>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof redeemReward>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getRedeemRewardMutationOptions(options));
     }
 

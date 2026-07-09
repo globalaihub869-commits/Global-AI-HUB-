@@ -11,6 +11,14 @@ import {
   listActivity,
   recordActivity,
 } from "../lib/social-store.js";
+import {
+  getBalance,
+  awardTokens,
+  getLeaderboard,
+  listRewards,
+  redeemReward,
+  type EarnAction,
+} from "../lib/rewards-store.js";
 
 const router: IRouter = Router();
 
@@ -115,6 +123,69 @@ router.post("/activity", requireAuth, (req, res) => {
   const user = res.locals.currentUser as { name: string };
   const event = recordActivity(type as (typeof allowed)[number], user.name, targetName);
   res.status(201).json({ event });
+});
+
+router.get("/tokens/me", requireAuth, (req, res) => {
+  const user = res.locals.currentUser as { id: string; name: string };
+  res.json(getBalance(user.id, user.name));
+});
+
+const EARN_ACTIONS = [
+  "like",
+  "comment",
+  "share",
+  "bookmark",
+  "tool_visited",
+  "watched_news",
+  "video_generated",
+  "chat_message",
+  "job_posted",
+  "job_applied",
+] as const;
+
+router.post("/tokens/earn", requireAuth, (req, res) => {
+  const { action, targetName } = req.body as { action?: string; targetName?: string };
+  if (!action || !EARN_ACTIONS.includes(action as (typeof EARN_ACTIONS)[number])) {
+    res.status(400).json({ error: "INVALID_ACTION", message: "A valid action is required" });
+    return;
+  }
+  const user = res.locals.currentUser as { id: string; name: string };
+  const balance = awardTokens(user.id, user.name, action as EarnAction);
+  if (targetName) {
+    const activityType = (["like", "job_posted", "tool_visited", "job_applied"] as const).includes(
+      action as "like" | "job_posted" | "tool_visited" | "job_applied",
+    )
+      ? (action as "like" | "job_posted" | "tool_visited" | "job_applied")
+      : null;
+    if (activityType) recordActivity(activityType, user.name, targetName);
+  }
+  req.log.info({ userId: user.id, action }, "tokens earned");
+  res.status(201).json(balance);
+});
+
+router.get("/leaderboard", (req, res) => {
+  const userId = req.session.userId ?? null;
+  res.json({ entries: getLeaderboard(userId) });
+});
+
+router.get("/rewards", (_req, res) => {
+  res.json({ rewards: listRewards() });
+});
+
+router.post("/rewards/:id/redeem", requireAuth, (req, res) => {
+  const user = res.locals.currentUser as { id: string; name: string };
+  const { id } = req.params as { id: string };
+  const result = redeemReward(user.id, user.name, id);
+  if (result.status === "not_found") {
+    res.status(404).json({ error: "NOT_FOUND", message: "Reward not found" });
+    return;
+  }
+  if (result.status === "insufficient_balance") {
+    res.status(400).json({ error: "INSUFFICIENT_BALANCE", message: "Not enough tokens to redeem this reward", balance: result.balance });
+    return;
+  }
+  req.log.info({ userId: user.id, rewardId: id }, "reward redeemed");
+  res.status(200).json({ balance: result.balance, reward: result.reward });
 });
 
 export default router;

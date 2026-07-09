@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { useEarnTokens } from "@/hooks/useEarnTokens";
 import {
   Sparkles, Play, Pause, Download, Share2, Wand2, Mic, User, Bot,
   Radio, Clapperboard, ArrowLeft, RefreshCw, Volume2, Captions, Loader2,
@@ -95,6 +96,7 @@ function Waveform({ playing }: { playing: boolean }) {
 
 export default function AiVideoStudio() {
   const { toast } = useToast();
+  const earnTokens = useEarnTokens();
   const { user } = useAuth();
   const [script, setScript] = useState(SAMPLE_SCRIPT);
   const [avatarId, setAvatarId] = useState<string>(AVATARS[0].id);
@@ -131,6 +133,7 @@ export default function AiVideoStudio() {
           if (progressTimer.current) clearInterval(progressTimer.current);
           setStatus("ready");
           toast({ title: "Broadcast ready", description: `${avatar.name} has finished rendering your AI news segment.` });
+          earnTokens("video_generated", avatar.name);
           return 100;
         }
         return next;

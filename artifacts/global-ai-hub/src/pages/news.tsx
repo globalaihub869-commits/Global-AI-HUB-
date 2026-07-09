@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { useListNews } from "@workspace/api-client-react";
 import type { NewsDigest } from "@workspace/api-client-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Link } from "wouter";
+import { useEarnTokens } from "@/hooks/useEarnTokens";
 
 const CATEGORIES = [
   { label: "All", value: "All", icon: Newspaper },
@@ -71,6 +72,15 @@ function CategoryChip({
 
 function FeaturedCard({ article }: { article: NewsDigest }) {
   const { t } = useLanguage();
+  const earnTokens = useEarnTokens();
+  const earnedRef = useRef(false);
+
+  const handleWatched = () => {
+    if (earnedRef.current) return;
+    earnedRef.current = true;
+    earnTokens("watched_news", article.title);
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="mb-10" data-testid="featured-article">
       <div className="relative rounded-2xl overflow-hidden p-[1px] bg-gradient-to-br from-primary/50 via-secondary/20 to-primary/10 shadow-[0_0_40px_rgba(168,85,247,0.2)]">
@@ -108,7 +118,7 @@ function FeaturedCard({ article }: { article: NewsDigest }) {
                 <span key={tag} className="text-xs text-muted-foreground/60 bg-white/[0.04] border border-white/[0.07] rounded px-2 py-0.5">{tag}</span>
               ))}
             </div>
-            <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" data-testid="featured-source-link"
+            <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" onClick={handleWatched} data-testid="featured-source-link"
               className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-white bg-primary/10 hover:bg-primary border border-primary/30 hover:border-primary rounded-full px-4 py-2 transition-all">
               {t("news.source")}: {article.source}<ExternalLink className="w-3.5 h-3.5" />
             </a>
@@ -122,6 +132,14 @@ function FeaturedCard({ article }: { article: NewsDigest }) {
 function DigestCard({ article, idx }: { article: NewsDigest; idx: number }) {
   const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
+  const earnTokens = useEarnTokens();
+  const earnedRef = useRef(false);
+
+  const handleWatched = () => {
+    if (earnedRef.current) return;
+    earnedRef.current = true;
+    earnTokens("watched_news", article.title);
+  };
 
   return (
     <motion.article
@@ -158,7 +176,7 @@ function DigestCard({ article, idx }: { article: NewsDigest; idx: number }) {
             ))}
           </ul>
           <button
-            onClick={() => setExpanded((v) => !v)}
+            onClick={() => { setExpanded((v) => !v); handleWatched(); }}
             className="mt-3 text-[11px] text-muted-foreground/60 hover:text-primary transition-colors md:hidden"
             data-testid={`btn-expand-${article.id}`}
           >
@@ -173,7 +191,7 @@ function DigestCard({ article, idx }: { article: NewsDigest; idx: number }) {
             <span key={tag} className="text-[11px] text-muted-foreground/50 bg-white/[0.03] border border-white/[0.06] rounded px-2 py-0.5">{tag}</span>
           ))}
         </div>
-        <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" data-testid={`source-link-${article.id}`}
+        <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" onClick={handleWatched} data-testid={`source-link-${article.id}`}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors group/link">
           {t("news.source")}
           <ExternalLink className="w-3.5 h-3.5 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5 transition-transform" />

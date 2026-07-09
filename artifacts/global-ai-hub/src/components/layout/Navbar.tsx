@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { LANGUAGES } from "@/i18n/translations";
 import { useAuth, type ProfileType } from "@/context/AuthContext";
+import TokenBadge from "@/components/rewards/TokenBadge";
 
 const PROFILE_META: Record<ProfileType, { icon: React.ElementType; label: string; color: string }> = {
   developer: { icon: Code2, label: "Developer", color: "text-primary" },
@@ -261,7 +262,10 @@ export default function Navbar() {
           <LanguageSwitcher />
           {!isLoading && (
             isAuthenticated ? (
-              <UserMenu />
+              <>
+                <TokenBadge />
+                <UserMenu />
+              </>
             ) : (
               <>
                 <Link href="/login">
@@ -305,7 +309,10 @@ export default function Navbar() {
                 <div className="mb-1"><LanguageSwitcher /></div>
                 {!isLoading && (
                   isAuthenticated ? (
-                    <UserMenu />
+                    <>
+                      <TokenBadge />
+                      <UserMenu />
+                    </>
                   ) : (
                     <>
                       <Link href="/login"><Button variant="outline" className="w-full rounded-full border-primary/50 text-primary">Sign In</Button></Link>

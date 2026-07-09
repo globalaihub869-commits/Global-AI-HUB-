@@ -192,6 +192,73 @@ export interface ActivityEvent {
   createdAt: string;
 }
 
+export interface TokenBalance {
+  balance: number;
+  level: string;
+}
+
+export type EarnTokensInputAction = typeof EarnTokensInputAction[keyof typeof EarnTokensInputAction];
+
+
+export const EarnTokensInputAction = {
+  like: 'like',
+  comment: 'comment',
+  share: 'share',
+  bookmark: 'bookmark',
+  tool_visited: 'tool_visited',
+  watched_news: 'watched_news',
+  video_generated: 'video_generated',
+  chat_message: 'chat_message',
+  job_posted: 'job_posted',
+  job_applied: 'job_applied',
+} as const;
+
+export interface EarnTokensInput {
+  action: EarnTokensInputAction;
+  targetName?: string;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  tokens: number;
+  level: string;
+  isCurrentUser: boolean;
+}
+
+export interface LeaderboardResponse {
+  entries: LeaderboardEntry[];
+}
+
+export type RewardIcon = typeof RewardIcon[keyof typeof RewardIcon];
+
+
+export const RewardIcon = {
+  badge: 'badge',
+  credit: 'credit',
+  spotlight: 'spotlight',
+  swag: 'swag',
+  priority: 'priority',
+} as const;
+
+export interface Reward {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  icon: RewardIcon;
+}
+
+export interface RewardsResponse {
+  rewards: Reward[];
+}
+
+export interface RewardRedemption {
+  balance: number;
+  reward: Reward;
+}
+
 export type NewsDigestCategory = typeof NewsDigestCategory[keyof typeof NewsDigestCategory];
 
 

@@ -377,3 +377,74 @@ export const RecordActivityResponse = zod.object({
 })
 
 
+/**
+ * @summary Get the current user's AI Hub Token balance and level
+ */
+export const GetMyTokenBalanceResponse = zod.object({
+  "balance": zod.number(),
+  "level": zod.string()
+})
+
+
+/**
+ * @summary Award AI Hub Tokens to the current user for a platform engagement action
+ */
+export const EarnTokensBody = zod.object({
+  "action": zod.enum(['like', 'comment', 'share', 'bookmark', 'tool_visited', 'watched_news', 'video_generated', 'chat_message', 'job_posted', 'job_applied']),
+  "targetName": zod.string().optional()
+})
+
+export const EarnTokensResponse = zod.object({
+  "balance": zod.number(),
+  "level": zod.string()
+})
+
+
+/**
+ * @summary Get the top active users/vendors ranked by AI Hub Tokens
+ */
+export const GetLeaderboardResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "rank": zod.number(),
+  "userId": zod.string(),
+  "name": zod.string(),
+  "tokens": zod.number(),
+  "level": zod.string(),
+  "isCurrentUser": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary List redeemable rewards in the AI Hub Tokens catalog
+ */
+export const ListRewardsResponse = zod.object({
+  "rewards": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "cost": zod.number(),
+  "icon": zod.enum(['badge', 'credit', 'spotlight', 'swag', 'priority'])
+}))
+})
+
+
+/**
+ * @summary Redeem a reward using AI Hub Tokens (simulated)
+ */
+export const RedeemRewardParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RedeemRewardResponse = zod.object({
+  "balance": zod.number(),
+  "reward": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "cost": zod.number(),
+  "icon": zod.enum(['badge', 'credit', 'spotlight', 'swag', 'priority'])
+})
+})
+
+
