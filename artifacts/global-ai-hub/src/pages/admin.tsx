@@ -2,11 +2,26 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldAlert, Activity, Users, Globe2, Gauge, LifeBuoy, Clock, CheckCircle2, AlertTriangle, CircleDot,
-  BrainCircuit, Bot, Ticket as TicketIcon,
+  BrainCircuit, Bot, Ticket as TicketIcon, Code2, Blocks, Lock, Tag,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSupport, type SupportTicket } from "@/context/SupportContext";
+import { apiFetch } from "@/context/AuthContext";
+
+interface PlaygroundActivity {
+  totalExecutions: number;
+  totalWidgets: number;
+  lockedFreeUsers: number;
+  activeSandboxUsers: number;
+  recentWidgets: {
+    id: string;
+    name: string;
+    type: string;
+    seo: { slug: string; keywords: string[] };
+    createdAt: number;
+  }[];
+}
 
 interface TrafficPoint {
   t: number;
@@ -49,6 +64,16 @@ export default function AdminDashboard() {
     Array.from({ length: 20 }, (_, i) => ({ t: i, visitors: 280 + Math.round(Math.sin(i / 2) * 30) })),
   );
   const [feed, setFeed] = useState<{ id: string; text: string }[]>([]);
+  const [playgroundActivity, setPlaygroundActivity] = useState<PlaygroundActivity | null>(null);
+
+  useEffect(() => {
+    const loadActivity = () => {
+      apiFetch("/playground/admin/activity").then(setPlaygroundActivity).catch(() => {});
+    };
+    loadActivity();
+    const interval = setInterval(loadActivity, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -214,6 +239,57 @@ export default function AdminDashboard() {
                 )}
               </AnimatePresence>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Playground & No-Code Builder activity */}
+      <div className="mb-8" data-testid="section-playground-activity">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
+            <Code2 className="w-4 h-4 text-cyan-300" /> AI Sandbox &amp; Builder Activity
+          </h2>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-60" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+          </span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          {[
+            { label: "Sandbox Executions", value: playgroundActivity?.totalExecutions ?? 0, icon: Code2, color: "text-cyan-300" },
+            { label: "Widgets Generated", value: playgroundActivity?.totalWidgets ?? 0, icon: Blocks, color: "text-primary" },
+            { label: "Active Sandbox Users", value: playgroundActivity?.activeSandboxUsers ?? 0, icon: Users, color: "text-secondary" },
+            { label: "Free Users Locked", value: playgroundActivity?.lockedFreeUsers ?? 0, icon: Lock, color: "text-yellow-300" },
+          ].map((stat) => (
+            <Card key={stat.label} className="bg-[hsl(240,15%,8%)] border-white/8" data-testid={`stat-playground-${stat.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
+              <CardContent className="p-4">
+                <stat.icon className={`w-4 h-4 mb-2 ${stat.color}`} />
+                <div className="text-2xl font-display font-bold text-white">{stat.value.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground/70 mt-1">{stat.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Tag className="w-4 h-4 text-secondary" /> Recently Generated Widgets (Auto-SEO Tagged)
+            </div>
+          </CardHeader>
+          <CardContent className="max-h-56 overflow-y-auto flex flex-col gap-2">
+            {!playgroundActivity || playgroundActivity.recentWidgets.length === 0 ? (
+              <p className="text-sm text-muted-foreground/60 py-4 text-center">No widgets generated yet.</p>
+            ) : (
+              playgroundActivity.recentWidgets.map((w) => (
+                <div key={w.id} className="flex items-center justify-between gap-3 text-xs border-l-2 border-primary/40 pl-2" data-testid={`admin-widget-${w.id}`}>
+                  <div className="min-w-0">
+                    <span className="text-white font-medium">{w.name}</span>
+                    <span className="text-muted-foreground"> · {w.type} · /{w.seo.slug}</span>
+                  </div>
+                  <span className="text-muted-foreground/40 flex-shrink-0">{new Date(w.createdAt).toLocaleTimeString()}</span>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

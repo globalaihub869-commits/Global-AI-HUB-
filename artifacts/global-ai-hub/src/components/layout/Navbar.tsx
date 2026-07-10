@@ -209,6 +209,58 @@ function LanguageSwitcher() {
   );
 }
 
+function MoreMenu({ links }: { links: { label: string; href: string }[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [location] = useLocation();
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        data-testid="nav-more-toggle"
+        className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+        aria-expanded={open}
+      >
+        More
+        <ChevronDown className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-full mt-2 start-0 w-52 rounded-2xl bg-[hsl(240,15%,9%)] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] z-50 py-1"
+            data-testid="nav-more-dropdown"
+          >
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className={`block px-4 py-2.5 text-sm transition-colors ${location === link.href ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-white hover:bg-white/5"}`}
+                data-testid={`nav-more-link-${link.href.replace("/", "")}`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function Navbar() {
   const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -227,14 +279,18 @@ export default function Navbar() {
   const navLinks: { key?: Parameters<typeof t>[0]; label?: string; href: string }[] = [
     { key: "nav.home", href: "/" },
     { key: "nav.tools", href: "/tools" },
-    { key: "nav.news", href: "/news" },
-    { label: "AI Video Studio", href: "/ai-video-studio" },
     { key: "nav.models", href: "/models" },
     { label: "Marketplace", href: "/marketplace" },
+    { label: "Playground", href: "/playground" },
+    { label: "Pricing", href: "/pricing" },
+  ];
+
+  const moreLinks: { label: string; href: string }[] = [
+    { label: "News", href: "/news" },
+    { label: "AI Video Studio", href: "/ai-video-studio" },
     { label: "Prompt Gigs", href: "/gigs" },
     { label: "Jobs", href: "/jobs" },
     { label: "ROI Calculator", href: "/roi-calculator" },
-    { label: "Pricing", href: "/pricing" },
   ];
 
   return (
@@ -260,6 +316,7 @@ export default function Navbar() {
               {link.key ? t(link.key) : link.label}
             </Link>
           ))}
+          <MoreMenu links={moreLinks} />
         </nav>
 
         {/* Desktop Actions */}
@@ -310,6 +367,13 @@ export default function Navbar() {
                   className={`block text-lg font-medium p-2 rounded-lg transition-colors ${location === link.href ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-white"}`}
                   onClick={() => setIsMobileMenuOpen(false)}>
                   {link.key ? t(link.key) : link.label}
+                </Link>
+              ))}
+              {moreLinks.map((link) => (
+                <Link key={link.href} href={link.href}
+                  className={`block text-lg font-medium p-2 rounded-lg transition-colors ${location === link.href ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-white"}`}
+                  onClick={() => setIsMobileMenuOpen(false)}>
+                  {link.label}
                 </Link>
               ))}
               <div className="pt-3 border-t border-white/5 flex flex-col gap-2">

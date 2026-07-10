@@ -8,6 +8,7 @@ import socialRouter from "./social.js";
 import billingRouter from "./billing.js";
 import marketplaceRouter from "./marketplace.js";
 import gigsRouter from "./gigs.js";
+import playgroundRouter from "./playground.js";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(socialRouter);
 router.use(billingRouter);
 router.use(marketplaceRouter);
 router.use(gigsRouter);
+router.use(playgroundRouter);
 
 export default router;

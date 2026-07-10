@@ -1,8 +1,2 @@
-- [Global AI Hub roles & social state](global-ai-hub-roles-social.md) — admin role via email prefix "admin"; social/bookmarks/points are localStorage-only, not backend-persisted.
-- [Global AI Hub tool intent search](global-ai-hub-tool-intent-search.md) — natural-language tool search uses a shared server-side intent map; reuse it for any widget needing tool recommendations.
-- [React Query mutation invalidation](react-query-mutation-invalidation.md) — orval-generated mutation hooks don't auto-refresh related list queries; must call `queryClient.invalidateQueries` in `onSuccess`.
-- [Orval inline body schema collisions](openapi-orval-duplicate-exports.md) — always `$ref` a named schema for request bodies, never inline `type: object`, or lib/api-zod typecheck fails with TS2308.
-- [Global AI Hub token rewards](global-ai-hub-token-rewards.md) — backend AI Hub Tokens (leaderboard/rewards) is additive/parallel to the pre-existing localStorage Hub Points system; don't merge them.
-- [Billing plan/verify flow](global-ai-hub-billing-crypto.md) — simulated USDT checkout: TxID regex requires pure hex 16+ chars (no 0x prefix), verify flips User.plan via upgradeUserPlan.
-- [Trial wallet seed pricing](trial-wallet-seed-pricing.md) — when seeding a simulated wallet balance for demo purchases, ensure at least some catalog items are priced at/below the starting balance.
-- [API server has no dev watch mode](api-server-no-watch.md) — code changes to artifacts/api-server require an explicit workflow restart to take effect.
+- [api-server no watch mode](api-server-no-watch.md) — must restart the API Server workflow after any backend `.ts` change before testing.
+- [screenshot tool auth isolation](screenshot-tool-auth.md) — curl-based cookie login doesn't authenticate the screenshot tool's browser session.

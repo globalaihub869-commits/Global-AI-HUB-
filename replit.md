@@ -1,6 +1,6 @@
-# [Project name]
+# Global AI Hub
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A dark/purple/cyan neon-themed hub for discovering, testing, and building with AI tools — including a marketplace, admin dashboard, and an embedded AI sandbox/no-code builder.
 
 ## Run & Operate
 

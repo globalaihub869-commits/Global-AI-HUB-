@@ -31,6 +31,7 @@ import AccountRecovery from "@/pages/auth/account-recovery";
 import Dashboard from "@/pages/dashboard";
 import AdminDashboard from "@/pages/admin";
 import Pricing from "@/pages/pricing";
+import Playground from "@/pages/playground";
 import GeoLanguageNotice from "@/components/common/GeoLanguageNotice";
 
 const queryClient = new QueryClient({
@@ -83,6 +84,22 @@ function DashboardGuard() {
   return (
     <Layout>
       <Dashboard />
+    </Layout>
+  );
+}
+
+function PlaygroundGuard() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) navigate("/login");
+  }, [isLoading, isAuthenticated, navigate]);
+
+  if (!isLoading && !isAuthenticated) return null;
+  return (
+    <Layout>
+      <Playground />
     </Layout>
   );
 }
@@ -146,6 +163,9 @@ function Router() {
         </Route>
         <Route path="/pricing">
           <Layout><Pricing /></Layout>
+        </Route>
+        <Route path="/playground">
+          <PlaygroundGuard />
         </Route>
         <Route path="/login">
           <AuthLayout><Login /></AuthLayout>
