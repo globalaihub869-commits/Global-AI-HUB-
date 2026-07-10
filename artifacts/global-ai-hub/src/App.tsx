@@ -21,6 +21,8 @@ import News from "@/pages/news";
 import AiVideoStudio from "@/pages/ai-video-studio";
 import Models from "@/pages/models";
 import Jobs from "@/pages/jobs";
+import Marketplace from "@/pages/marketplace";
+import Gigs from "@/pages/gigs";
 import RoiCalculator from "@/pages/roi-calculator";
 import Login from "@/pages/auth/login";
 import Signup from "@/pages/auth/signup";
@@ -132,6 +134,12 @@ function Router() {
         </Route>
         <Route path="/jobs">
           <Layout><Jobs /></Layout>
+        </Route>
+        <Route path="/marketplace">
+          <Layout><Marketplace /></Layout>
+        </Route>
+        <Route path="/gigs">
+          <Layout><Gigs /></Layout>
         </Route>
         <Route path="/roi-calculator">
           <Layout><RoiCalculator /></Layout>

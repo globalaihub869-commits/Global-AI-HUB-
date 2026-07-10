@@ -11,6 +11,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { LANGUAGES } from "@/i18n/translations";
 import { useAuth, type ProfileType } from "@/context/AuthContext";
 import TokenBadge from "@/components/rewards/TokenBadge";
+import TrialWalletBadge from "@/components/marketplace/TrialWalletBadge";
 
 const PROFILE_META: Record<ProfileType, { icon: React.ElementType; label: string; color: string }> = {
   developer: { icon: Code2, label: "Developer", color: "text-primary" },
@@ -228,6 +229,8 @@ export default function Navbar() {
     { key: "nav.news", href: "/news" },
     { label: "AI Video Studio", href: "/ai-video-studio" },
     { key: "nav.models", href: "/models" },
+    { label: "Marketplace", href: "/marketplace" },
+    { label: "Prompt Gigs", href: "/gigs" },
     { label: "Jobs", href: "/jobs" },
     { label: "ROI Calculator", href: "/roi-calculator" },
     { label: "Pricing", href: "/pricing" },
@@ -264,6 +267,7 @@ export default function Navbar() {
           {!isLoading && (
             isAuthenticated ? (
               <>
+                <TrialWalletBadge />
                 <TokenBadge />
                 <UserMenu />
               </>
@@ -311,6 +315,7 @@ export default function Navbar() {
                 {!isLoading && (
                   isAuthenticated ? (
                     <>
+                      <TrialWalletBadge />
                       <TokenBadge />
                       <UserMenu />
                     </>

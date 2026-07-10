@@ -13,6 +13,7 @@ export interface AuthUser {
   createdAt: string;
   plan: PlanTier;
   planActivatedAt: string | null;
+  walletBalanceUsd: number;
 }
 
 interface AuthContextValue {

@@ -15,6 +15,7 @@ export interface User {
   createdAt: Date;
   plan: PlanTier;
   planActivatedAt: Date | null;
+  walletBalanceUsd: number;
 }
 
 export interface PublicUser {
@@ -26,7 +27,10 @@ export interface PublicUser {
   createdAt: string;
   plan: PlanTier;
   planActivatedAt: string | null;
+  walletBalanceUsd: number;
 }
+
+export const TRIAL_WALLET_STARTING_BALANCE = 5.0;
 
 const users = new Map<string, User>();
 const emailIndex = new Map<string, string>();
@@ -41,6 +45,7 @@ export function toPublic(user: User): PublicUser {
     createdAt: user.createdAt.toISOString(),
     plan: user.plan,
     planActivatedAt: user.planActivatedAt ? user.planActivatedAt.toISOString() : null,
+    walletBalanceUsd: Math.round(user.walletBalanceUsd * 100) / 100,
   };
 }
 
@@ -65,6 +70,7 @@ export async function createUser(
     createdAt: new Date(),
     plan: "free",
     planActivatedAt: null,
+    walletBalanceUsd: TRIAL_WALLET_STARTING_BALANCE,
   };
 
   users.set(user.id, user);
@@ -100,5 +106,13 @@ export function upgradeUserPlan(id: string, plan: PlanTier): User | null {
   if (!user) return null;
   user.plan = plan;
   user.planActivatedAt = new Date();
+  return user;
+}
+
+export function debitWallet(id: string, amountUsd: number): User | null {
+  const user = users.get(id);
+  if (!user) return null;
+  if (user.walletBalanceUsd < amountUsd) return null;
+  user.walletBalanceUsd = Math.round((user.walletBalanceUsd - amountUsd) * 100) / 100;
   return user;
 }
