@@ -5,3 +5,4 @@
 - [Global AI Hub token rewards](global-ai-hub-token-rewards.md) — backend AI Hub Tokens (leaderboard/rewards) is additive/parallel to the pre-existing localStorage Hub Points system; don't merge them.
 - [Billing plan/verify flow](global-ai-hub-billing-crypto.md) — simulated USDT checkout: TxID regex requires pure hex 16+ chars (no 0x prefix), verify flips User.plan via upgradeUserPlan.
 - [Trial wallet seed pricing](trial-wallet-seed-pricing.md) — when seeding a simulated wallet balance for demo purchases, ensure at least some catalog items are priced at/below the starting balance.
+- [API server has no dev watch mode](api-server-no-watch.md) — code changes to artifacts/api-server require an explicit workflow restart to take effect.

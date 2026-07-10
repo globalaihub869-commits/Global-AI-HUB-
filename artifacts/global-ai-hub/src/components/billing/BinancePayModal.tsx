@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import QRCode from "react-qr-code";
 import {
   X, Copy, Check, ShieldCheck, Clock, Loader2, AlertTriangle, PartyPopper,
+  Radar, Wifi, Mail, Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, apiFetch, type PlanTier } from "@/context/AuthContext";
@@ -19,10 +20,124 @@ interface CheckoutSession {
   expiresAt: number;
 }
 
+interface Invoice {
+  invoiceId: string;
+  plan: PlanTier;
+  planName: string;
+  amountUsdt: number;
+  network: "TRC20" | "ERC20";
+  txId: string;
+  walletAddress: string;
+  issuedAt: number;
+  dispatchedToEmail: string;
+  premiumToken: string;
+}
+
 interface Props {
   plan: PlanTier;
   planName: string;
   onClose: () => void;
+}
+
+const SCAN_STEPS = [
+  "Connecting to Binance Pay webhook node...",
+  "Scanning blockchain mempool for TxID...",
+  "Cross-checking USDT transfer amount...",
+  "Awaiting network confirmations...",
+];
+
+function NetworkScanAnimation({ txId }: { txId: string }) {
+  const [stepIndex, setStepIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStepIndex((i) => Math.min(i + 1, SCAN_STEPS.length - 1));
+    }, 480);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center text-center py-8" data-testid="network-scan-animation">
+      <div className="relative w-24 h-24 mb-5 flex items-center justify-center">
+        <motion.div
+          className="absolute inset-0 rounded-full border-2 border-cyan-400/40"
+          animate={{ scale: [1, 1.6, 1.6], opacity: [0.7, 0, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
+        />
+        <motion.div
+          className="absolute inset-0 rounded-full border-2 border-primary/40"
+          animate={{ scale: [1, 1.6, 1.6], opacity: [0.7, 0, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut", delay: 0.6 }}
+        />
+        <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400/20 to-primary/20 border border-cyan-400/50 flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,0.4)]">
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
+            <Radar className="w-7 h-7 text-cyan-300" />
+          </motion.div>
+        </div>
+      </div>
+
+      <p className="text-sm font-semibold text-white mb-1 flex items-center gap-1.5" data-testid="text-scan-status">
+        <Wifi className="w-3.5 h-3.5 text-cyan-300" />
+        {SCAN_STEPS[stepIndex]}
+      </p>
+      <p className="text-[11px] text-muted-foreground font-mono truncate max-w-[260px]" data-testid="text-scan-txid">
+        TxID: {txId}
+      </p>
+
+      <div className="w-full max-w-[220px] h-1.5 rounded-full bg-white/8 overflow-hidden mt-4">
+        <motion.div
+          className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-primary"
+          initial={{ width: "0%" }}
+          animate={{ width: `${((stepIndex + 1) / SCAN_STEPS.length) * 100}%` }}
+          transition={{ duration: 0.4 }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InvoiceReceipt({ invoice, planName, onClose }: { invoice: Invoice; planName: string; onClose: () => void }) {
+  return (
+    <div
+      className="relative flex flex-col items-center text-center py-6 rounded-xl border border-yellow-400/40 shimmer-border-gold overflow-hidden"
+      data-testid="invoice-receipt-overlay"
+    >
+      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-200 flex items-center justify-center mb-4 shadow-[0_0_25px_rgba(234,179,8,0.5)]">
+        <Crown className="w-8 h-8 text-black" />
+      </div>
+      <h3 className="text-lg font-display font-bold text-white mb-1">Payment Confirmed!</h3>
+      <p className="text-sm text-muted-foreground mb-4 px-4">
+        You are now a <span className="text-yellow-400 font-semibold">{planName} Member</span>. Your dashboard has been upgraded instantly.
+      </p>
+
+      <div className="w-full mx-4 mb-4 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2.5 flex items-center gap-2" data-testid="banner-invoice-dispatched">
+        <Mail className="w-4 h-4 text-emerald-300 flex-shrink-0" />
+        <p className="text-xs text-emerald-300 font-semibold text-left">Invoice Successfully Dispatched to User Email!</p>
+      </div>
+
+      <div className="w-[calc(100%-2rem)] mx-4 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-left font-mono" data-testid="card-digital-receipt">
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-dashed border-white/10">
+          <span className="text-[11px] text-muted-foreground uppercase tracking-widest">Digital Receipt</span>
+          <span className="text-[11px] text-yellow-300 font-bold" data-testid="text-invoice-id">{invoice.invoiceId}</span>
+        </div>
+        <div className="flex flex-col gap-1.5 text-xs">
+          <div className="flex justify-between"><span className="text-muted-foreground">Plan</span><span className="text-white font-semibold">{invoice.planName}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Amount</span><span className="text-white font-semibold" data-testid="text-invoice-amount">{invoice.amountUsdt.toFixed(2)} USDT ({invoice.network})</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">TxID</span><span className="text-cyan-300 truncate max-w-[160px]">{invoice.txId}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Timestamp</span><span className="text-white" data-testid="text-invoice-timestamp">{new Date(invoice.issuedAt).toLocaleString()}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Sent to</span><span className="text-white truncate max-w-[160px]">{invoice.dispatchedToEmail}</span></div>
+          <div className="flex justify-between pt-2 mt-1 border-t border-dashed border-white/10">
+            <span className="text-muted-foreground">Premium Token</span>
+            <span className="text-yellow-300 font-bold tracking-wider" data-testid="text-premium-token">{invoice.premiumToken}</span>
+          </div>
+        </div>
+      </div>
+
+      <Button onClick={onClose} className="rounded-full bg-primary hover:bg-primary/90 mt-5" data-testid="btn-close-success">
+        Go to Dashboard
+      </Button>
+    </div>
+  );
 }
 
 function formatCountdown(msLeft: number) {
@@ -44,6 +159,8 @@ export default function BinancePayModal({ plan, planName, onClose }: Props) {
   const [now, setNow] = useState(Date.now());
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
 
   const startCheckout = async (net: "TRC20" | "ERC20") => {
     setLoading(true);
@@ -89,19 +206,29 @@ export default function BinancePayModal({ plan, planName, onClose }: Props) {
   const handleVerify = async () => {
     if (!session || !txId.trim()) return;
     setVerifying(true);
+    setScanning(true);
     setError(null);
+    const scanStartedAt = Date.now();
     try {
       const data = await apiFetch("/billing/verify", {
         method: "POST",
         body: JSON.stringify({ sessionId: session.id, txId: txId.trim() }),
       });
+      // Keep the network-scanning animation visible for a minimum duration so the
+      // webhook/TxID verification feels like a real live scan, even on a fast response.
+      const MIN_SCAN_MS = 1800;
+      const elapsed = Date.now() - scanStartedAt;
+      if (elapsed < MIN_SCAN_MS) await new Promise((r) => setTimeout(r, MIN_SCAN_MS - elapsed));
+
       setUser(data.user);
+      setInvoice(data.invoice ?? null);
       setSuccess(true);
       toast({ title: "Payment confirmed", description: `Welcome to ${planName}! Your account has been upgraded.` });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Verification failed");
     } finally {
       setVerifying(false);
+      setScanning(false);
     }
   };
 
@@ -133,18 +260,24 @@ export default function BinancePayModal({ plan, planName, onClose }: Props) {
 
         <div className="p-5">
           {success ? (
-            <div className="flex flex-col items-center text-center py-6" data-testid="payment-success">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center mb-4">
-                <PartyPopper className="w-8 h-8 text-emerald-400" />
+            invoice ? (
+              <InvoiceReceipt invoice={invoice} planName={planName} onClose={onClose} />
+            ) : (
+              <div className="flex flex-col items-center text-center py-6" data-testid="payment-success">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center mb-4">
+                  <PartyPopper className="w-8 h-8 text-emerald-400" />
+                </div>
+                <h3 className="text-lg font-display font-bold text-white mb-1">Payment Confirmed!</h3>
+                <p className="text-sm text-muted-foreground mb-5">
+                  You are now a <span className="text-yellow-400 font-semibold">{planName} Member</span>. Your dashboard has been upgraded instantly.
+                </p>
+                <Button onClick={onClose} className="rounded-full bg-primary hover:bg-primary/90" data-testid="btn-close-success">
+                  Go to Dashboard
+                </Button>
               </div>
-              <h3 className="text-lg font-display font-bold text-white mb-1">Payment Confirmed!</h3>
-              <p className="text-sm text-muted-foreground mb-5">
-                You are now a <span className="text-yellow-400 font-semibold">{planName} Member</span>. Your dashboard has been upgraded instantly.
-              </p>
-              <Button onClick={onClose} className="rounded-full bg-primary hover:bg-primary/90" data-testid="btn-close-success">
-                Go to Dashboard
-              </Button>
-            </div>
+            )
+          ) : scanning ? (
+            <NetworkScanAnimation txId={txId.trim()} />
           ) : (
             <>
               <div className="flex items-center justify-between mb-4">

@@ -12,6 +12,7 @@ import { LANGUAGES } from "@/i18n/translations";
 import { useAuth, type ProfileType } from "@/context/AuthContext";
 import TokenBadge from "@/components/rewards/TokenBadge";
 import TrialWalletBadge from "@/components/marketplace/TrialWalletBadge";
+import AmbientModeToggle from "@/components/layout/AmbientModeToggle";
 
 const PROFILE_META: Record<ProfileType, { icon: React.ElementType; label: string; color: string }> = {
   developer: { icon: Code2, label: "Developer", color: "text-primary" },
@@ -263,6 +264,7 @@ export default function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
+          <AmbientModeToggle />
           <LanguageSwitcher />
           {!isLoading && (
             isAuthenticated ? (
@@ -311,7 +313,10 @@ export default function Navbar() {
                 </Link>
               ))}
               <div className="pt-3 border-t border-white/5 flex flex-col gap-2">
-                <div className="mb-1"><LanguageSwitcher /></div>
+                <div className="mb-1 flex flex-wrap gap-2">
+                  <AmbientModeToggle />
+                  <LanguageSwitcher />
+                </div>
                 {!isLoading && (
                   isAuthenticated ? (
                     <>

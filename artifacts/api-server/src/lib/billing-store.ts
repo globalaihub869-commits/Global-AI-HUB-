@@ -71,6 +71,40 @@ interface CheckoutSession {
   txId?: string;
 }
 
+export interface Invoice {
+  invoiceId: string;
+  plan: PlanTier;
+  planName: string;
+  amountUsdt: number;
+  network: Network;
+  txId: string;
+  walletAddress: string;
+  issuedAt: number;
+  dispatchedToEmail: string;
+  premiumToken: string;
+}
+
+function generatePremiumToken(plan: PlanTier): string {
+  const prefix = plan === "enterprise" ? "ENT" : "PRO";
+  return `${prefix}-${randomBytes(6).toString("hex").toUpperCase()}`;
+}
+
+export function buildInvoice(session: CheckoutSession, userEmail: string): Invoice {
+  const def = getPlan(session.plan);
+  return {
+    invoiceId: `INV-${randomBytes(5).toString("hex").toUpperCase()}`,
+    plan: session.plan,
+    planName: def?.name ?? session.plan,
+    amountUsdt: session.amountUsdt,
+    network: session.network,
+    txId: session.txId ?? "",
+    walletAddress: session.walletAddress,
+    issuedAt: Date.now(),
+    dispatchedToEmail: userEmail,
+    premiumToken: generatePremiumToken(session.plan),
+  };
+}
+
 const sessions = new Map<string, CheckoutSession>();
 
 const SESSION_TTL_MS = 15 * 60 * 1000;

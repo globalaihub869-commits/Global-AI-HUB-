@@ -67,7 +67,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           data-testid="banner-pro-member"
-          className="relative mb-8 rounded-2xl border-2 border-yellow-400/70 bg-gradient-to-r from-yellow-500/10 via-[hsl(240,15%,8%)] to-yellow-500/10 p-5 overflow-hidden shadow-[0_0_35px_rgba(234,179,8,0.35)]"
+          className="relative mb-8 rounded-2xl border-2 border-yellow-400/70 bg-gradient-to-r from-yellow-500/10 via-[hsl(240,15%,8%)] to-yellow-500/10 p-5 overflow-hidden shadow-[0_0_35px_rgba(234,179,8,0.35)] shimmer-border-gold"
         >
           <div className="absolute -top-8 -left-8 w-32 h-32 rounded-full bg-yellow-400/25 blur-3xl" />
           <div className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full bg-yellow-400/15 blur-3xl" />

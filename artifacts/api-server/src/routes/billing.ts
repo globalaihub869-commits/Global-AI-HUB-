@@ -6,6 +6,7 @@ import {
   createCheckoutSession,
   getCheckoutSession,
   verifyCheckoutSession,
+  buildInvoice,
   type Network,
 } from "../lib/billing-store.js";
 
@@ -83,7 +84,8 @@ router.post("/billing/verify", requireAuth, (req, res) => {
         res.status(404).json({ error: "USER_NOT_FOUND" });
         return;
       }
-      res.json({ session: result.session, user: toPublic(user) });
+      const invoice = buildInvoice(result.session, user.email);
+      res.json({ session: result.session, user: toPublic(user), invoice });
       return;
     }
   }
