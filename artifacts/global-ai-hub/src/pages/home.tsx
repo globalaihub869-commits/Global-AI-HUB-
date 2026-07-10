@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,9 @@ import {
   Brain, Image as ImageIcon, Code2, Mic, Bot, Database,
   ArrowRight, Play, ChevronDown, Mail, Sparkles, Zap, Globe, CheckCircle2,
   TrendingUp, Newspaper, FlaskConical, BookOpen, Building2, DollarSign,
-  Briefcase, GraduationCap, Settings,
+  Briefcase, GraduationCap, Settings, Star,
 } from "lucide-react";
+import { apiFetch } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth, type ProfileType } from "@/context/AuthContext";
 import { useListTools, useListNews } from "@workspace/api-client-react";
@@ -373,6 +374,17 @@ export default function Home() {
   const showPersonalized = !authLoading && isAuthenticated && user?.profileType;
   const showNudge = !authLoading && isAuthenticated && !user?.profileType;
 
+  interface FeaturedReview { id: string; userName: string; rating: number; comment: string; createdAt: number; }
+  const [featuredReviews, setFeaturedReviews] = useState<FeaturedReview[]>([]);
+  useEffect(() => {
+    const fetchReviews = () => {
+      apiFetch("/support/reviews/featured").then((d: { reviews: FeaturedReview[] }) => setFeaturedReviews(d.reviews ?? [])).catch(() => {});
+    };
+    fetchReviews();
+    const iv = setInterval(fetchReviews, 30_000);
+    return () => clearInterval(iv);
+  }, []);
+
   return (
     <div className="min-h-screen pt-20 pb-10 overflow-hidden">
       <div className="fixed top-[-20%] left-1/2 -translate-x-1/2 w-[900px] h-[700px] bg-primary/20 blur-[130px] rounded-full pointer-events-none -z-10" />
@@ -523,6 +535,36 @@ export default function Home() {
             })}
           </div>
         </section>
+
+        {/* ── TESTIMONIALS ── */}
+        {featuredReviews.length > 0 && (
+          <section className="py-16" data-testid="testimonials-section">
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/25 text-yellow-300 text-sm font-medium mb-4">
+                <Star className="w-3.5 h-3.5 fill-yellow-300" /> User Reviews
+              </div>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-3">What our community says</h2>
+              <p className="text-muted-foreground max-w-xl mx-auto">Real reviews from verified users of Global AI Hub.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+              {featuredReviews.map((review, idx) => (
+                <motion.div key={review.id} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.07 }} data-testid={`review-card-${review.id}`}>
+                  <Card className="h-full bg-card/50 backdrop-blur-sm border-white/10 hover:border-yellow-400/30 transition-all shadow-lg">
+                    <CardContent className="p-6 flex flex-col gap-3">
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`w-4 h-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-white/15"}`} />
+                        ))}
+                      </div>
+                      <p className="text-sm text-white/80 leading-relaxed flex-1">"{review.comment}"</p>
+                      <p className="text-xs text-muted-foreground/60 font-medium">— {review.userName}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── FAQ ── */}
         <section className="py-20 max-w-3xl mx-auto" data-testid="faq-section">

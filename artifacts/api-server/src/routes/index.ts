@@ -12,6 +12,7 @@ import playgroundRouter from "./playground.js";
 import securityRouter from "./security.js";
 import referralsRouter from "./referrals.js";
 import analyticsRouter from "./analytics.js";
+import supportRouter from "./support.js";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(playgroundRouter);
 router.use(securityRouter);
 router.use(referralsRouter);
 router.use(analyticsRouter);
+router.use(supportRouter);
 
 export default router;

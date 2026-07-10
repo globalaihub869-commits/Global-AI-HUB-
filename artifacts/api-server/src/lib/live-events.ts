@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
  * SSE route in routes/security.ts subscribes to stream events to admins.
  */
 
-export type LiveEventType = "threat_blocked" | "purchase" | "ip_unblocked";
+export type LiveEventType = "threat_blocked" | "purchase" | "ip_unblocked" | "vip_ticket";
 
 export interface LiveEvent {
   id: string;

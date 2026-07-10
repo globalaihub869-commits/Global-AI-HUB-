@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldAlert, Activity, Users, Globe2, Gauge, LifeBuoy, Clock, CheckCircle2, AlertTriangle, CircleDot,
   BrainCircuit, Bot, Ticket as TicketIcon, Code2, Blocks, Lock, Tag, ShieldBan, Crown, TrendingUp, Ban,
-  ScrollText, Unlock, BellRing,
+  ScrollText, Unlock, BellRing, Send, Archive, Star,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,11 +54,42 @@ interface ActionLogEntry extends ThreatEvent {
 
 interface LiveEvent {
   id: string;
-  type: "threat_blocked" | "purchase" | "ip_unblocked";
+  type: "threat_blocked" | "purchase" | "ip_unblocked" | "vip_ticket";
   title: string;
   message: string;
   createdAt: number;
 }
+
+interface AdminTicket {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  issue: string;
+  status: "Open" | "Pending" | "Resolved" | "Archived";
+  severity: "Low" | "Medium" | "High";
+  isVip: boolean;
+  adminReply: string | null;
+  submittedAt: number;
+  lastActivityAt: number;
+}
+
+interface AdminTicketStats {
+  open: number;
+  pending: number;
+  resolved: number;
+  archived: number;
+  vip: number;
+  total: number;
+}
+
+const QUICK_REPLY_TEMPLATES = [
+  "Thank you for reaching out! Your issue has been reviewed and resolved — please let us know if you experience any further problems. ✅",
+  "We're actively investigating this. Could you please provide more details about the exact steps you took before this occurred?",
+  "Your account has been updated. The changes should take effect immediately — please try again and let us know!",
+  "I've escalated your ticket to our senior technical team. You'll receive a full update within 24 hours. 🎫",
+  "This is a known issue that our engineering team is working on. A fix will be deployed within the next 48 hours — we apologise for the inconvenience.",
+];
 
 interface ExecutiveSummary {
   totalConversions: number;
@@ -113,20 +144,24 @@ const sourceLabel: Record<SupportTicket["source"], string> = {
 
 const REGIONS = ["United States", "Germany", "India", "Brazil", "Japan", "Nigeria", "France", "UAE"];
 
-/** Live Audio/Visual push chime: an alarm blip for blocked threats, a bright chime for purchases. */
+/** Live Audio/Visual push chime: an alarm blip for blocked threats, a bright chime for purchases, an urgent gold arpeggio for VIP tickets. */
 function playPushChime(type: LiveEvent["type"]) {
   try {
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new AudioCtx();
-    const notes = type === "purchase" ? [523.25, 659.25, 783.99] : type === "ip_unblocked" ? [440, 554.37] : [880, 440];
+    const notes =
+      type === "purchase" ? [523.25, 659.25, 783.99]
+      : type === "ip_unblocked" ? [440, 554.37]
+      : type === "vip_ticket" ? [880, 1046.5, 1318.51, 1046.5, 880]
+      : [880, 440];
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = type === "threat_blocked" ? "square" : "sine";
+      osc.type = type === "threat_blocked" ? "square" : type === "vip_ticket" ? "triangle" : "sine";
       osc.frequency.value = freq;
-      const startAt = ctx.currentTime + i * 0.11;
+      const startAt = ctx.currentTime + i * (type === "vip_ticket" ? 0.09 : 0.11);
       gain.gain.setValueAtTime(0, startAt);
-      gain.gain.linearRampToValueAtTime(0.12, startAt + 0.02);
+      gain.gain.linearRampToValueAtTime(type === "vip_ticket" ? 0.16 : 0.12, startAt + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.28);
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -139,7 +174,7 @@ function playPushChime(type: LiveEvent["type"]) {
 }
 
 export default function AdminDashboard() {
-  const { tickets, healEvents, healthStatus, totalAutoHeals } = useSupport();
+  const { healEvents, healthStatus, totalAutoHeals } = useSupport();
   const [activeUsers, setActiveUsers] = useState(312);
   const [requestsPerMin, setRequestsPerMin] = useState(1840);
   const [pageViews, setPageViews] = useState(58211);
@@ -153,6 +188,11 @@ export default function AdminDashboard() {
   const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
   const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
   const [unblockingIp, setUnblockingIp] = useState<string | null>(null);
+  const [adminTickets, setAdminTickets] = useState<AdminTicket[]>([]);
+  const [adminTicketStats, setAdminTicketStats] = useState<AdminTicketStats | null>(null);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replyLoading, setReplyLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -221,8 +261,14 @@ export default function AdminDashboard() {
         return;
       }
       playPushChime(payload.type);
+      const titles: Record<LiveEvent["type"], string> = {
+        purchase: "💰 Package purchased",
+        ip_unblocked: "🔓 IP unblocked",
+        threat_blocked: "🚨 Threat blocked",
+        vip_ticket: "⭐ VIP Ticket Received",
+      };
       toast({
-        title: payload.type === "purchase" ? "💰 Package purchased" : payload.type === "ip_unblocked" ? "IP unblocked" : "🚨 Threat blocked",
+        title: titles[payload.type] ?? payload.title,
         description: payload.message,
         variant: payload.type === "threat_blocked" ? "destructive" : "default",
       });
@@ -233,6 +279,51 @@ export default function AdminDashboard() {
     return () => source.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const loadAdminTickets = () => {
+      apiFetch("/support/tickets")
+        .then((data: { tickets: AdminTicket[]; stats: AdminTicketStats }) => {
+          setAdminTickets(data.tickets ?? []);
+          setAdminTicketStats(data.stats ?? null);
+        })
+        .catch(() => {});
+    };
+    loadAdminTickets();
+    const interval = setInterval(loadAdminTickets, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleQuickReply = async (ticketId: string, status: AdminTicket["status"]) => {
+    if (!replyText.trim()) return;
+    setReplyLoading(true);
+    try {
+      const data: { ticket: AdminTicket } = await apiFetch(`/support/tickets/${ticketId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status, adminReply: replyText.trim() }),
+      });
+      setAdminTickets((prev) => prev.map((t) => (t.id === ticketId ? data.ticket : t)));
+      setActiveReplyId(null);
+      setReplyText("");
+      toast({ title: "Reply sent", description: `Ticket ${ticketId} updated to ${status}.` });
+    } catch {
+      toast({ title: "Failed to update ticket", variant: "destructive" });
+    } finally {
+      setReplyLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (ticketId: string, status: AdminTicket["status"]) => {
+    try {
+      const data: { ticket: AdminTicket } = await apiFetch(`/support/tickets/${ticketId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      setAdminTickets((prev) => prev.map((t) => (t.id === ticketId ? data.ticket : t)));
+    } catch {
+      toast({ title: "Failed to update status", variant: "destructive" });
+    }
+  };
 
   const handleUnblockIp = async (ip: string) => {
     setUnblockingIp(ip);
@@ -658,58 +749,166 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Support desk */}
+      {/* Super Admin Support Center */}
       <div data-testid="section-support-desk">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
-            <LifeBuoy className="w-4 h-4 text-secondary" /> Customer Support &amp; Help Desk
+            <LifeBuoy className="w-4 h-4 text-secondary" /> Super Admin Support Center
+            {adminTicketStats && adminTicketStats.vip > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 animate-pulse" data-testid="badge-vip-open">
+                <Crown className="w-2.5 h-2.5" /> {adminTicketStats.vip} VIP
+              </span>
+            )}
           </h2>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Open: {tickets.filter((t) => t.status === "Open").length}</span>
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" /> Pending: {tickets.filter((t) => t.status === "Pending").length}</span>
-            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Resolved: {tickets.filter((t) => t.status === "Resolved").length}</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Open: {adminTicketStats?.open ?? 0}</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" /> Pending: {adminTicketStats?.pending ?? 0}</span>
+            <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-400" /> Resolved: {adminTicketStats?.resolved ?? 0}</span>
           </div>
         </div>
         <p className="text-xs text-muted-foreground/60 mb-4 flex items-center gap-1.5">
-          <Bot className="w-3.5 h-3.5 text-cyan-300" /> Simple queries are auto-resolved by the AI Support Agent in real time — only complex tickets land here.
+          <Bot className="w-3.5 h-3.5 text-cyan-300" /> Tickets submitted by users on the <strong className="text-white/70">/support</strong> page. Simple queries are auto-resolved by the AI agent in real time.
         </p>
 
+        {/* Quick Reply Templates */}
+        <div className="mb-4 flex flex-wrap gap-2" data-testid="quick-reply-templates">
+          {QUICK_REPLY_TEMPLATES.map((tmpl, i) => (
+            <button
+              key={i}
+              onClick={() => setReplyText(tmpl)}
+              className="text-[11px] px-2.5 py-1 rounded-full border border-white/10 text-muted-foreground/70 hover:text-cyan-300 hover:border-cyan-400/30 transition-colors bg-white/[0.02]"
+              data-testid={`template-${i}`}
+            >
+              {tmpl.slice(0, 50)}{tmpl.length > 50 ? "…" : ""}
+            </button>
+          ))}
+        </div>
+
         <Card className="bg-[hsl(240,15%,8%)] border-white/8 overflow-hidden">
-          <div className="divide-y divide-white/5">
-            <AnimatePresence initial={false}>
-              {tickets.map((ticket) => {
-                const Icon = statusIcon[ticket.status];
-                return (
-                  <motion.div
-                    key={ticket.id}
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-start gap-4 p-4 hover:bg-white/[0.03] transition-colors"
-                    data-testid={`ticket-${ticket.id}`}
-                  >
-                    <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${statusStyle[ticket.status].split(" ")[0]}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-xs font-mono text-muted-foreground/60">{ticket.id}</span>
-                        <span className="text-xs text-muted-foreground">{ticket.user}</span>
-                        <Badge variant="outline" className={`text-[10px] ${severityStyle[ticket.severity]}`}>{ticket.severity}</Badge>
-                        {ticket.source === "agent" && (
-                          <Badge variant="outline" className="text-[10px] text-cyan-300 border-cyan-400/30 inline-flex items-center gap-1">
-                            <TicketIcon className="w-2.5 h-2.5" /> {sourceLabel[ticket.source]}
-                          </Badge>
-                        )}
+          {adminTickets.length === 0 ? (
+            <div className="py-12 flex flex-col items-center gap-3 text-center" data-testid="no-admin-tickets">
+              <LifeBuoy className="w-10 h-10 text-muted-foreground/20" />
+              <p className="text-sm text-muted-foreground/50">No tickets submitted via the /support page yet.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-white/5">
+              <AnimatePresence initial={false}>
+                {adminTickets.map((ticket) => {
+                  const isExpanded = activeReplyId === ticket.id;
+                  const statusColors: Record<AdminTicket["status"], string> = {
+                    Open: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10",
+                    Pending: "text-yellow-400 border-yellow-400/40 bg-yellow-400/10",
+                    Resolved: "text-cyan-400 border-cyan-400/40 bg-cyan-400/10",
+                    Archived: "text-muted-foreground border-white/15",
+                  };
+                  const sevColors: Record<AdminTicket["severity"], string> = {
+                    High: "text-red-300 border-red-400/30",
+                    Medium: "text-secondary border-secondary/30",
+                    Low: "text-muted-foreground border-white/15",
+                  };
+                  return (
+                    <motion.div
+                      key={ticket.id}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 hover:bg-white/[0.025] transition-colors"
+                      data-testid={`ticket-${ticket.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-[11px] font-mono text-muted-foreground/60">{ticket.id}</span>
+                            <span className="text-xs text-muted-foreground">{ticket.userEmail}</span>
+                            <Badge variant="outline" className={`text-[10px] ${statusColors[ticket.status]}`}>{ticket.status}</Badge>
+                            <Badge variant="outline" className={`text-[10px] ${sevColors[ticket.severity]}`}>{ticket.severity}</Badge>
+                            {ticket.isVip && (
+                              <Badge variant="outline" className="text-[10px] text-yellow-300 border-yellow-400/30 bg-yellow-400/10 inline-flex items-center gap-0.5" data-testid={`badge-vip-${ticket.id}`}>
+                                <Crown className="w-2.5 h-2.5" /> VIP
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-white/90 mb-1">{ticket.issue}</p>
+                          {ticket.adminReply && (
+                            <div className="pl-3 border-l-2 border-cyan-400/30 mb-1">
+                              <p className="text-[11px] text-cyan-200">{ticket.adminReply}</p>
+                            </div>
+                          )}
+                          <p className="text-[11px] text-muted-foreground/40">{new Date(ticket.submittedAt).toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={() => { setActiveReplyId(isExpanded ? null : ticket.id); if (!isExpanded) setReplyText(""); }}
+                            className="text-[11px] px-2 py-1 rounded border border-white/10 text-muted-foreground hover:text-cyan-300 hover:border-cyan-400/30 transition-colors"
+                            data-testid={`btn-reply-${ticket.id}`}
+                          >
+                            <Send className="w-3 h-3" />
+                          </button>
+                          {ticket.status !== "Archived" && (
+                            <button
+                              onClick={() => handleStatusChange(ticket.id, "Archived")}
+                              className="text-[11px] px-2 py-1 rounded border border-white/10 text-muted-foreground hover:text-yellow-300 hover:border-yellow-400/30 transition-colors"
+                              data-testid={`btn-archive-${ticket.id}`}
+                              title="Archive"
+                            >
+                              <Archive className="w-3 h-3" />
+                            </button>
+                          )}
+                          {ticket.status === "Open" && (
+                            <button
+                              onClick={() => handleStatusChange(ticket.id, "Resolved")}
+                              className="text-[11px] px-2 py-1 rounded border border-white/10 text-muted-foreground hover:text-emerald-300 hover:border-emerald-400/30 transition-colors"
+                              data-testid={`btn-resolve-${ticket.id}`}
+                              title="Resolve"
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm text-white/90">{ticket.issue}</p>
-                      <p className="text-[11px] text-muted-foreground/50 mt-1">{new Date(ticket.submittedAt).toLocaleString()}</p>
-                    </div>
-                    <Badge variant="outline" className={`text-xs flex-shrink-0 ${statusStyle[ticket.status]}`}>{ticket.status}</Badge>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
+
+                      {/* Expandable quick reply panel */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-3 border-t border-white/8 pt-3"
+                            data-testid={`reply-panel-${ticket.id}`}
+                          >
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Type reply or click a quick template above..."
+                              rows={3}
+                              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-muted-foreground/40 focus:outline-none focus:border-cyan-400/30 resize-none mb-2"
+                              data-testid={`input-reply-${ticket.id}`}
+                            />
+                            <div className="flex gap-2 flex-wrap">
+                              {(["Resolved", "Pending", "Open"] as AdminTicket["status"][]).map((s) => (
+                                <button
+                                  key={s}
+                                  disabled={replyLoading || !replyText.trim()}
+                                  onClick={() => handleQuickReply(ticket.id, s)}
+                                  className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-muted-foreground hover:text-white hover:border-white/20 disabled:opacity-40 transition-colors"
+                                  data-testid={`btn-send-reply-${s.toLowerCase()}-${ticket.id}`}
+                                >
+                                  {replyLoading ? "Sending…" : `Reply & Mark ${s}`}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          )}
         </Card>
       </div>
     </div>
   );
 }
+

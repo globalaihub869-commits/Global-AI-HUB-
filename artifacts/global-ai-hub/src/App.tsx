@@ -31,6 +31,7 @@ import Onboarding from "@/pages/auth/onboarding";
 import AccountRecovery from "@/pages/auth/account-recovery";
 import Dashboard from "@/pages/dashboard";
 import AdminDashboard from "@/pages/admin";
+import SupportPage from "@/pages/support";
 import Pricing from "@/pages/pricing";
 import Playground from "@/pages/playground";
 import GeoLanguageNotice from "@/components/common/GeoLanguageNotice";
@@ -188,6 +189,9 @@ function Router() {
         </Route>
         <Route path="/admin">
           <AdminGuard />
+        </Route>
+        <Route path="/support">
+          <Layout><SupportPage /></Layout>
         </Route>
         <Route>
           <Layout><NotFound /></Layout>
