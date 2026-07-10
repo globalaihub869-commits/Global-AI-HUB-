@@ -4,3 +4,6 @@
 - [Global AI Hub tier/growth engine](global-ai-hub-tier-growth-engine.md) — plan limits, referral rewards, and analytics all derive from the same in-memory stores; keep new features additive to avoid duplicating sources of truth.
 - [IP-based hard blocking self-lockout](ip-blocking-self-lockout.md) — hard IP blocks apply to ALL requests from that IP including the admin's own session; test exploit-detection with a spare/incognito session or expect to get locked out and need a workflow restart.
 - [Diagnostic shell vs threat defense](diagnostic-shell-threat-defense.md) — rapid curl probes from localhost trigger the IP auto-block (threat defense working correctly); restart API Server workflow to clear in-memory blocks after dev diagnostics.
+- [apiFetch contract](apifetch-contract.md) — prepends BASE+/api, returns parsed JSON, throws on error. Never .ok/.json() or /api prefix in path.
+- [Admin data stores](admin-data-stores.md) — threat store, conversions, action log, VIP emails are all in-memory; reset on server restart by design.
+- [Google OAuth status](google-oauth-status.md) — frontend button only; backend callback not wired. Needs VITE_GOOGLE_CLIENT_ID + /api/auth/google/callback to go live.
