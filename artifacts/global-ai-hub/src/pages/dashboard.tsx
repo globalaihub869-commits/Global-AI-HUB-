@@ -12,6 +12,7 @@ import ActivityFeed from "@/components/social/ActivityFeed";
 import SocialConnections from "@/components/social/SocialConnections";
 import Leaderboard from "@/components/rewards/Leaderboard";
 import RewardsWallet from "@/components/rewards/RewardsWallet";
+import ReferralCard from "@/components/rewards/ReferralCard";
 
 function tierFor(points: number) {
   if (points >= 500) return { label: "Visionary", color: "text-secondary border-secondary/40 bg-secondary/10", next: null as number | null };
@@ -136,6 +137,9 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
+
+        {/* SG Viral Referral Engine */}
+        <ReferralCard />
 
         {/* Notifications */}
         <Card className="lg:col-span-2 bg-[hsl(240,15%,8%)] border-white/8" data-testid="card-notifications">

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSupport, type SupportTicket } from "@/context/SupportContext";
 import { apiFetch } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import ExecutiveAnalytics from "@/components/admin/ExecutiveAnalytics";
 
 interface PlaygroundActivity {
   totalExecutions: number;
@@ -226,6 +227,9 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Executive revenue/usage analytics + PDF export */}
+      <ExecutiveAnalytics />
 
       {/* Live stat tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

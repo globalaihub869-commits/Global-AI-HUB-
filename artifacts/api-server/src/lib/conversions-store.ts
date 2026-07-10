@@ -27,6 +27,10 @@ export function recordConversion(input: {
   return event;
 }
 
+export function getExecutiveSummaryRaw() {
+  return { conversions };
+}
+
 export function getExecutiveSummary() {
   const highValue = conversions.filter((c) => c.amountUsdt >= HIGH_VALUE_THRESHOLD_USDT);
   const totalRevenueUsdt = conversions.reduce((sum, c) => sum + c.amountUsdt, 0);

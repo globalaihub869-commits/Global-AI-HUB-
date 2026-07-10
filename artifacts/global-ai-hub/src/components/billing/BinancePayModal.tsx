@@ -96,7 +96,52 @@ function NetworkScanAnimation({ txId }: { txId: string }) {
   );
 }
 
+function playVipChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const startAt = ctx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(0, startAt);
+      gain.gain.linearRampToValueAtTime(0.18, startAt + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.55);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startAt);
+      osc.stop(startAt + 0.6);
+    });
+    setTimeout(() => ctx.close().catch(() => {}), 1200);
+  } catch {
+    // Web Audio unavailable — celebration remains purely visual.
+  }
+}
+
 function InvoiceReceipt({ invoice, planName, onClose }: { invoice: Invoice; planName: string; onClose: () => void }) {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const confettiModule = await import("canvas-confetti");
+      const confetti = confettiModule.default;
+      if (cancelled) return;
+      playVipChime();
+      const colors = ["#facc15", "#a855f7", "#22d3ee", "#ffffff"];
+      confetti({ particleCount: 120, spread: 90, origin: { y: 0.4 }, colors, startVelocity: 45, scalar: 1.1 });
+      confetti({ particleCount: 60, angle: 60, spread: 70, origin: { x: 0, y: 0.5 }, colors });
+      confetti({ particleCount: 60, angle: 120, spread: 70, origin: { x: 1, y: 0.5 }, colors });
+      setTimeout(() => {
+        if (!cancelled) confetti({ particleCount: 80, spread: 100, origin: { y: 0.3 }, colors, scalar: 0.9 });
+      }, 400);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div
       className="relative flex flex-col items-center text-center py-6 rounded-xl border border-yellow-400/40 shimmer-border-gold overflow-hidden"

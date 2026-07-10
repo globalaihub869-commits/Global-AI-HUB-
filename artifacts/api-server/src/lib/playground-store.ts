@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import type { PlanTier } from "./users.js";
+import { getTierLimits, isAtLimit } from "./plan-limits.js";
 
 export const FREE_EXECUTION_LIMIT = 5;
 
@@ -36,11 +37,14 @@ function getState(userId: string): UserPlaygroundState {
 
 export function getUsage(userId: string, plan: PlanTier) {
   const s = getState(userId);
-  const unlimited = plan !== "free";
+  const limits = getTierLimits(plan);
   return {
     executionCount: s.executionCount,
-    limit: unlimited ? null : FREE_EXECUTION_LIMIT,
-    locked: !unlimited && s.executionCount >= FREE_EXECUTION_LIMIT,
+    limit: limits.sandboxExecutions,
+    locked: isAtLimit(s.executionCount, limits.sandboxExecutions),
+    widgetCount: s.widgets.length,
+    widgetLimit: limits.noCodeWidgets,
+    widgetsLocked: isAtLimit(s.widgets.length, limits.noCodeWidgets),
     plan,
   };
 }
@@ -51,10 +55,14 @@ export type ExecuteResult =
 
 export function executeSandboxCode(userId: string, plan: PlanTier, code: string): ExecuteResult {
   const s = getState(userId);
-  const unlimited = plan !== "free";
+  const limits = getTierLimits(plan);
 
-  if (!unlimited && s.executionCount >= FREE_EXECUTION_LIMIT) {
-    return { status: "locked", executionCount: s.executionCount, limit: FREE_EXECUTION_LIMIT };
+  if (isAtLimit(s.executionCount, limits.sandboxExecutions)) {
+    return {
+      status: "locked",
+      executionCount: s.executionCount,
+      limit: limits.sandboxExecutions ?? FREE_EXECUTION_LIMIT,
+    };
   }
 
   s.executionCount += 1;
@@ -71,7 +79,7 @@ export function executeSandboxCode(userId: string, plan: PlanTier, code: string)
   return {
     status: "ok",
     executionCount: s.executionCount,
-    limit: unlimited ? null : FREE_EXECUTION_LIMIT,
+    limit: limits.sandboxExecutions,
     output,
   };
 }
@@ -101,6 +109,26 @@ function slugify(name: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
     .slice(0, 60) || "widget";
+}
+
+export type CreateWidgetResult =
+  | { status: "locked"; widgetCount: number; limit: number }
+  | { status: "ok"; widget: Widget };
+
+export function createWidgetChecked(
+  userId: string,
+  plan: PlanTier,
+  name: string,
+  type: string,
+  description: string,
+): CreateWidgetResult {
+  const s = getState(userId);
+  const limits = getTierLimits(plan);
+  if (isAtLimit(s.widgets.length, limits.noCodeWidgets)) {
+    return { status: "locked", widgetCount: s.widgets.length, limit: limits.noCodeWidgets as number };
+  }
+  const widget = createWidget(userId, name, type, description);
+  return { status: "ok", widget };
 }
 
 export function createWidget(userId: string, name: string, type: string, description: string): Widget {
@@ -138,6 +166,16 @@ export function createWidget(userId: string, name: string, type: string, descrip
 
 export function listWidgets(userId: string): Widget[] {
   return getState(userId).widgets;
+}
+
+export function getAdminActivityRaw() {
+  const widgets: Widget[] = [];
+  let totalExecutions = 0;
+  for (const s of state.values()) {
+    totalExecutions += s.executionCount;
+    widgets.push(...s.widgets);
+  }
+  return { widgets, totalExecutions };
 }
 
 export function getAdminActivitySummary() {

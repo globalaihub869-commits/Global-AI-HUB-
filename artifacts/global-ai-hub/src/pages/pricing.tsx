@@ -7,6 +7,7 @@ import { useAuth, type PlanTier } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import BinancePayModal from "@/components/billing/BinancePayModal";
+import FlashSaleCountdown from "@/components/pricing/FlashSaleCountdown";
 
 interface PlanCard {
   id: PlanTier;
@@ -101,6 +102,8 @@ export default function Pricing() {
           <ShieldCheck className="w-3.5 h-3.5" /> Secured by Binance Pay-style escrow
         </div>
       </div>
+
+      <FlashSaleCountdown />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {PLAN_CARDS.map((plan, i) => {

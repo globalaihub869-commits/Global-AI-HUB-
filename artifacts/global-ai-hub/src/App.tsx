@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { HelmetProvider } from "react-helmet-async";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,6 +34,7 @@ import AdminDashboard from "@/pages/admin";
 import Pricing from "@/pages/pricing";
 import Playground from "@/pages/playground";
 import GeoLanguageNotice from "@/components/common/GeoLanguageNotice";
+import PageSeo from "@/components/seo/PageSeo";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
@@ -133,6 +135,7 @@ function AdminGuard() {
 function Router() {
   return (
     <>
+      <PageSeo />
       <Switch>
         <Route path="/">
           <Layout><Home /></Layout>
@@ -200,22 +203,24 @@ function Router() {
 
 function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <SocialProvider>
-          <SupportProvider>
-            <QueryClientProvider client={queryClient}>
-              <TooltipProvider>
-                <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                  <Router />
-                </WouterRouter>
-                <Toaster />
-              </TooltipProvider>
-            </QueryClientProvider>
-          </SupportProvider>
-        </SocialProvider>
-      </AuthProvider>
-    </LanguageProvider>
+    <HelmetProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <SocialProvider>
+            <SupportProvider>
+              <QueryClientProvider client={queryClient}>
+                <TooltipProvider>
+                  <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                    <Router />
+                  </WouterRouter>
+                  <Toaster />
+                </TooltipProvider>
+              </QueryClientProvider>
+            </SupportProvider>
+          </SocialProvider>
+        </AuthProvider>
+      </LanguageProvider>
+    </HelmetProvider>
   );
 }
 

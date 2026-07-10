@@ -10,6 +10,8 @@ import marketplaceRouter from "./marketplace.js";
 import gigsRouter from "./gigs.js";
 import playgroundRouter from "./playground.js";
 import securityRouter from "./security.js";
+import referralsRouter from "./referrals.js";
+import analyticsRouter from "./analytics.js";
 
 const router: IRouter = Router();
 
@@ -24,5 +26,7 @@ router.use(marketplaceRouter);
 router.use(gigsRouter);
 router.use(playgroundRouter);
 router.use(securityRouter);
+router.use(referralsRouter);
+router.use(analyticsRouter);
 
 export default router;

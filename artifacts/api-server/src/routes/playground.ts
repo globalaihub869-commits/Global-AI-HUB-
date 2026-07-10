@@ -4,7 +4,7 @@ import {
   FREE_EXECUTION_LIMIT,
   getUsage,
   executeSandboxCode,
-  createWidget,
+  createWidgetChecked,
   listWidgets,
   getAdminActivitySummary,
 } from "../lib/playground-store.js";
@@ -68,8 +68,20 @@ router.post("/playground/widgets", requireAuth, (req, res) => {
     return;
   }
   const userId = req.session.userId!;
-  const widget = createWidget(userId, name.trim(), type.trim(), (description ?? "").trim());
-  res.status(201).json({ widget });
+  const user = getUserById(userId)!;
+  const result = createWidgetChecked(userId, user.plan, name.trim(), type.trim(), (description ?? "").trim());
+
+  if (result.status === "locked") {
+    res.status(403).json({
+      error: "USAGE_LIMIT_REACHED",
+      message: `${user.plan === "free" ? "Free" : "Pro"} plan is limited to ${result.limit} No-Code Builder widgets. Upgrade your plan for more.`,
+      widgetCount: result.widgetCount,
+      limit: result.limit,
+    });
+    return;
+  }
+
+  res.status(201).json({ widget: result.widget });
 });
 
 router.get("/playground/widgets", requireAuth, (req, res) => {

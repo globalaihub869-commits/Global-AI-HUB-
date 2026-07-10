@@ -8,6 +8,7 @@ import {
   type ProfileType,
 } from "../lib/users.js";
 import { recordFailedLogin } from "../lib/threat-store.js";
+import { redeemReferral, getReferralOwnerId } from "../lib/referral-store.js";
 
 declare module "express-session" {
   interface SessionData {
@@ -18,10 +19,11 @@ declare module "express-session" {
 const router = Router();
 
 router.post("/auth/signup", async (req, res) => {
-  const { email, name, password } = req.body as {
+  const { email, name, password, referralCode } = req.body as {
     email?: string;
     name?: string;
     password?: string;
+    referralCode?: string;
   };
 
   if (!email || !name || !password) {
@@ -40,6 +42,17 @@ router.post("/auth/signup", async (req, res) => {
   try {
     const user = await createUser(email, name, password);
     req.session.userId = user.id;
+
+    // Optional Smart Growth (SG) referral redemption. Purely additive: any
+    // failure here (invalid/self code) never blocks the signup itself.
+    if (referralCode && referralCode.trim()) {
+      const ownerId = getReferralOwnerId(referralCode.trim());
+      const referrer = ownerId ? getUserById(ownerId) : undefined;
+      if (referrer) {
+        redeemReferral(referralCode.trim(), user.id, user.email, referrer.plan);
+      }
+    }
+
     res.status(201).json({ user: toPublic(user) });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "";

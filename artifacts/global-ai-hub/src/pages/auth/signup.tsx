@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { CircuitBoard, Eye, EyeOff, UserPlus, AlertCircle, Check } from "lucide-react";
+import { CircuitBoard, Eye, EyeOff, UserPlus, AlertCircle, Check, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
@@ -35,13 +35,15 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const referralCode = useMemo(() => new URLSearchParams(window.location.search).get("ref") ?? undefined, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
     setError(null);
     setLoading(true);
     try {
-      await signup(name, email, password);
+      await signup(name, email, password, referralCode);
       navigate("/onboarding");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Signup failed";
@@ -71,6 +73,11 @@ export default function Signup() {
           </Link>
           <h1 className="text-3xl font-display font-bold text-white mb-2">Create your account</h1>
           <p className="text-muted-foreground">Join 50,000+ researchers and builders worldwide</p>
+          {referralCode && (
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold border rounded-full px-2.5 py-1 mt-4 text-emerald-300 border-emerald-400/30 bg-emerald-400/10" data-testid="badge-referral-applied">
+              <Gift className="w-3.5 h-3.5" /> Invited via referral code {referralCode}
+            </div>
+          )}
         </div>
 
         <div className="p-[1px] rounded-2xl bg-gradient-to-br from-primary/40 via-secondary/20 to-primary/10 shadow-[0_0_40px_rgba(168,85,247,0.15)]">
