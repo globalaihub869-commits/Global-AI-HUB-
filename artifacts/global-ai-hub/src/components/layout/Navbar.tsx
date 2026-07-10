@@ -230,6 +230,7 @@ export default function Navbar() {
     { key: "nav.models", href: "/models" },
     { label: "Jobs", href: "/jobs" },
     { label: "ROI Calculator", href: "/roi-calculator" },
+    { label: "Pricing", href: "/pricing" },
   ];
 
   return (

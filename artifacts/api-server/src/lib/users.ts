@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 
 export type ProfileType = "developer" | "business" | "student";
 export type Role = "admin" | "user";
+export type PlanTier = "free" | "pro" | "enterprise";
 
 export interface User {
   id: string;
@@ -12,6 +13,8 @@ export interface User {
   profileType: ProfileType | null;
   role: Role;
   createdAt: Date;
+  plan: PlanTier;
+  planActivatedAt: Date | null;
 }
 
 export interface PublicUser {
@@ -21,6 +24,8 @@ export interface PublicUser {
   profileType: ProfileType | null;
   role: Role;
   createdAt: string;
+  plan: PlanTier;
+  planActivatedAt: string | null;
 }
 
 const users = new Map<string, User>();
@@ -34,6 +39,8 @@ export function toPublic(user: User): PublicUser {
     profileType: user.profileType,
     role: user.role,
     createdAt: user.createdAt.toISOString(),
+    plan: user.plan,
+    planActivatedAt: user.planActivatedAt ? user.planActivatedAt.toISOString() : null,
   };
 }
 
@@ -56,6 +63,8 @@ export async function createUser(
     // Demo-only role assignment: any email local-part starting with "admin" becomes a Super Admin.
     role: normalizedEmail.startsWith("admin") ? "admin" : "user",
     createdAt: new Date(),
+    plan: "free",
+    planActivatedAt: null,
   };
 
   users.set(user.id, user);
@@ -83,5 +92,13 @@ export function updateUserProfile(id: string, profileType: ProfileType): User | 
   const user = users.get(id);
   if (!user) return null;
   user.profileType = profileType;
+  return user;
+}
+
+export function upgradeUserPlan(id: string, plan: PlanTier): User | null {
+  const user = users.get(id);
+  if (!user) return null;
+  user.plan = plan;
+  user.planActivatedAt = new Date();
   return user;
 }

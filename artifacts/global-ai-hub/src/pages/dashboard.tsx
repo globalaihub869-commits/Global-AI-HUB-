@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Award, Bell, Bookmark, Sparkles, ExternalLink, Star, ArrowRight, CheckCheck } from "lucide-react";
+import { Award, Bell, Bookmark, Sparkles, ExternalLink, Star, ArrowRight, CheckCheck, Crown, Rocket, ShieldCheck, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -20,6 +20,20 @@ function tierFor(points: number) {
   return { label: "Newcomer", color: "text-muted-foreground border-white/15 bg-white/5", next: 50 };
 }
 
+const PREMIUM_BADGES: Record<"pro" | "enterprise", { label: string; icon: typeof Crown; color: string }[]> = {
+  pro: [
+    { label: "Pro Member", icon: Crown, color: "text-yellow-300 border-yellow-400/40 bg-yellow-400/10" },
+    { label: "2x Token Multiplier", icon: Zap, color: "text-cyan-300 border-cyan-400/40 bg-cyan-400/10" },
+    { label: "Priority Job Placement", icon: Rocket, color: "text-primary border-primary/40 bg-primary/10" },
+  ],
+  enterprise: [
+    { label: "Enterprise Verified", icon: ShieldCheck, color: "text-emerald-300 border-emerald-400/40 bg-emerald-400/10" },
+    { label: "Pro Member", icon: Crown, color: "text-yellow-300 border-yellow-400/40 bg-yellow-400/10" },
+    { label: "2x Token Multiplier", icon: Zap, color: "text-cyan-300 border-cyan-400/40 bg-cyan-400/10" },
+    { label: "Priority Job Placement", icon: Rocket, color: "text-primary border-primary/40 bg-primary/10" },
+  ],
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { hubPoints, notifications, unreadCount, markAllRead, bookmarkedIds } = useSocial();
@@ -27,6 +41,9 @@ export default function Dashboard() {
 
   const tier = tierFor(hubPoints);
   const progressPct = tier.next ? Math.min(100, Math.round((hubPoints / tier.next) * 100)) : 100;
+  const plan = user?.plan ?? "free";
+  const isPro = plan === "pro" || plan === "enterprise";
+  const premiumBadges = isPro ? PREMIUM_BADGES[plan as "pro" | "enterprise"] : [];
 
   const bookmarkedTools = useMemo(() => {
     const all = data?.tools ?? [];
@@ -44,6 +61,55 @@ export default function Dashboard() {
         </h1>
         <p className="text-muted-foreground mt-1">Track your engagement, notifications, and saved tools.</p>
       </div>
+
+      {isPro && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          data-testid="banner-pro-member"
+          className="relative mb-8 rounded-2xl border-2 border-yellow-400/70 bg-gradient-to-r from-yellow-500/10 via-[hsl(240,15%,8%)] to-yellow-500/10 p-5 overflow-hidden shadow-[0_0_35px_rgba(234,179,8,0.35)]"
+        >
+          <div className="absolute -top-8 -left-8 w-32 h-32 rounded-full bg-yellow-400/25 blur-3xl" />
+          <div className="absolute -bottom-8 -right-8 w-32 h-32 rounded-full bg-yellow-400/15 blur-3xl" />
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-200 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(234,179,8,0.5)]">
+                <Crown className="w-6 h-6 text-black" />
+              </div>
+              <div>
+                <p className="text-white font-display font-bold text-lg leading-tight">
+                  {plan === "enterprise" ? "Enterprise Member" : "Pro Member"}
+                </p>
+                <p className="text-xs text-yellow-200/80">Unlocked via verified crypto payment · All premium perks active</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {premiumBadges.map((b) => (
+                <span
+                  key={b.label}
+                  data-testid={`badge-premium-${b.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  className={`inline-flex items-center gap-1.5 text-[11px] font-semibold border rounded-full px-2.5 py-1 ${b.color}`}
+                >
+                  <b.icon className="w-3.5 h-3.5" /> {b.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {!isPro && (
+        <div className="mb-8 rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" data-testid="banner-upgrade-prompt">
+          <p className="text-sm text-muted-foreground">
+            Upgrade to <span className="text-yellow-300 font-semibold">Pro</span> for a glowing gold badge, 2x tokens, and priority placement.
+          </p>
+          <Link href="/pricing">
+            <Button size="sm" className="rounded-full bg-gradient-to-r from-yellow-500 to-yellow-400 text-black font-semibold hover:from-yellow-400 hover:to-yellow-300" data-testid="btn-upgrade-now">
+              Upgrade Now
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Hub Points */}

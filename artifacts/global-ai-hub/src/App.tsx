@@ -28,6 +28,8 @@ import Onboarding from "@/pages/auth/onboarding";
 import AccountRecovery from "@/pages/auth/account-recovery";
 import Dashboard from "@/pages/dashboard";
 import AdminDashboard from "@/pages/admin";
+import Pricing from "@/pages/pricing";
+import GeoLanguageNotice from "@/components/common/GeoLanguageNotice";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
@@ -134,6 +136,9 @@ function Router() {
         <Route path="/roi-calculator">
           <Layout><RoiCalculator /></Layout>
         </Route>
+        <Route path="/pricing">
+          <Layout><Pricing /></Layout>
+        </Route>
         <Route path="/login">
           <AuthLayout><Login /></AuthLayout>
         </Route>
@@ -160,6 +165,7 @@ function Router() {
       <SupportAgentWidget />
       <ChatWidget />
       <MessagingOverlay />
+      <GeoLanguageNotice />
     </>
   );
 }

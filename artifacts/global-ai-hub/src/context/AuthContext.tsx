@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 
 export type ProfileType = "developer" | "business" | "student";
 export type Role = "admin" | "user";
+export type PlanTier = "free" | "pro" | "enterprise";
 
 export interface AuthUser {
   id: string;
@@ -10,6 +11,8 @@ export interface AuthUser {
   profileType: ProfileType | null;
   role: Role;
   createdAt: string;
+  plan: PlanTier;
+  planActivatedAt: string | null;
 }
 
 interface AuthContextValue {
@@ -20,13 +23,14 @@ interface AuthContextValue {
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profileType: ProfileType) => Promise<void>;
+  setUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-async function apiFetch(path: string, init?: RequestInit) {
+export async function apiFetch(path: string, init?: RequestInit) {
   const res = await fetch(`${BASE}/api${path}`, {
     credentials: "include",
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
@@ -87,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signup,
         logout,
         updateProfile,
+        setUser,
       }}
     >
       {children}

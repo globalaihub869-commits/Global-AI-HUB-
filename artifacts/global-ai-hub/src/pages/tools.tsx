@@ -14,6 +14,7 @@ import { useListTools } from "@workspace/api-client-react";
 import type { Tool } from "@workspace/api-client-react";
 import { useLanguage } from "@/context/LanguageContext";
 import ToolSocialBar from "@/components/tools/ToolSocialBar";
+import TranslateToggle from "@/components/common/TranslateToggle";
 
 type Pricing = "Free" | "Freemium" | "Premium";
 type ToolType = "Text" | "Image" | "Audio" | "Code" | "Video" | "Data";
@@ -129,6 +130,7 @@ function ToolCard({ tool, idx }: { tool: Tool; idx: number }) {
 
         <CardContent className="flex-1 px-5 pb-3">
           <p className="text-sm text-muted-foreground leading-relaxed">{tool.description}</p>
+          <TranslateToggle text={tool.description} className="mt-2" testId={`btn-translate-tool-${tool.id}`} />
           {tool.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {tool.tags.slice(0, 3).map((tag) => (

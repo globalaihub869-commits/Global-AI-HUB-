@@ -14,6 +14,7 @@ import type { NewsDigest } from "@workspace/api-client-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Link } from "wouter";
 import { useEarnTokens } from "@/hooks/useEarnTokens";
+import TranslateToggle from "@/components/common/TranslateToggle";
 
 const CATEGORIES = [
   { label: "All", value: "All", icon: Newspaper },
@@ -110,6 +111,11 @@ function FeaturedCard({ article }: { article: NewsDigest }) {
                 </li>
               ))}
             </ul>
+            <TranslateToggle
+              text={(article.summary as [string, string, string]).join(" ")}
+              className="mt-3"
+              testId={`btn-translate-featured-${article.id}`}
+            />
           </div>
 
           <div className="flex items-center justify-between pt-5 border-t border-white/8">
@@ -182,6 +188,11 @@ function DigestCard({ article, idx }: { article: NewsDigest; idx: number }) {
           >
             {expanded ? t("news.showLess") : t("news.showFull")}
           </button>
+          <TranslateToggle
+            text={(article.summary as [string, string, string]).join(" ")}
+            className="mt-3"
+            testId={`btn-translate-news-${article.id}`}
+          />
         </div>
       </div>
 
