@@ -35,6 +35,7 @@ import Pricing from "@/pages/pricing";
 import Playground from "@/pages/playground";
 import GeoLanguageNotice from "@/components/common/GeoLanguageNotice";
 import PageSeo from "@/components/seo/PageSeo";
+import SecurityWarningBanner from "@/components/security/SecurityWarningBanner";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
@@ -210,6 +211,7 @@ function App() {
             <SupportProvider>
               <QueryClientProvider client={queryClient}>
                 <TooltipProvider>
+                  <SecurityWarningBanner />
                   <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                     <Router />
                   </WouterRouter>

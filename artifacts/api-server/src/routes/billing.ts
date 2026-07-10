@@ -10,6 +10,7 @@ import {
   type Network,
 } from "../lib/billing-store.js";
 import { recordConversion } from "../lib/conversions-store.js";
+import { publishLiveEvent } from "../lib/live-events.js";
 
 const router: IRouter = Router();
 
@@ -91,6 +92,11 @@ router.post("/billing/verify", requireAuth, (req, res) => {
         userEmail: user.email,
         plan: result.session.plan,
         amountUsdt: result.session.amountUsdt,
+      });
+      publishLiveEvent({
+        type: "purchase",
+        title: "Package purchased",
+        message: `${user.email} upgraded to ${result.session.plan} for $${result.session.amountUsdt} USDT`,
       });
       res.json({ session: result.session, user: toPublic(user), invoice });
       return;

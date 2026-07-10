@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldAlert, Activity, Users, Globe2, Gauge, LifeBuoy, Clock, CheckCircle2, AlertTriangle, CircleDot,
   BrainCircuit, Bot, Ticket as TicketIcon, Code2, Blocks, Lock, Tag, ShieldBan, Crown, TrendingUp, Ban,
+  ScrollText, Unlock, BellRing,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,9 +38,26 @@ interface ThreatEvent {
 
 interface ThreatSummary {
   totalThreatsBlocked: number;
+  totalPreBlockWarnings: number;
   activeBlockedIps: number;
   blockedIpList: { ip: string; reason: string; expiresAt: number }[];
   recentThreats: ThreatEvent[];
+}
+
+interface ActionLogEntry extends ThreatEvent {
+  method: string;
+  path: string;
+  action: string;
+  preBlockWarning: boolean;
+  attemptNumber: number;
+}
+
+interface LiveEvent {
+  id: string;
+  type: "threat_blocked" | "purchase" | "ip_unblocked";
+  title: string;
+  message: string;
+  createdAt: number;
 }
 
 interface ExecutiveSummary {
@@ -95,6 +113,31 @@ const sourceLabel: Record<SupportTicket["source"], string> = {
 
 const REGIONS = ["United States", "Germany", "India", "Brazil", "Japan", "Nigeria", "France", "UAE"];
 
+/** Live Audio/Visual push chime: an alarm blip for blocked threats, a bright chime for purchases. */
+function playPushChime(type: LiveEvent["type"]) {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const notes = type === "purchase" ? [523.25, 659.25, 783.99] : type === "ip_unblocked" ? [440, 554.37] : [880, 440];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type === "threat_blocked" ? "square" : "sine";
+      osc.frequency.value = freq;
+      const startAt = ctx.currentTime + i * 0.11;
+      gain.gain.setValueAtTime(0, startAt);
+      gain.gain.linearRampToValueAtTime(0.12, startAt + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.28);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startAt);
+      osc.stop(startAt + 0.3);
+    });
+  } catch {
+    // Audio not available (e.g. autoplay-blocked before user interaction) — fail silently.
+  }
+}
+
 export default function AdminDashboard() {
   const { tickets, healEvents, healthStatus, totalAutoHeals } = useSupport();
   const [activeUsers, setActiveUsers] = useState(312);
@@ -108,6 +151,8 @@ export default function AdminDashboard() {
   const [playgroundActivity, setPlaygroundActivity] = useState<PlaygroundActivity | null>(null);
   const [threatSummary, setThreatSummary] = useState<ThreatSummary | null>(null);
   const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
+  const [actionLog, setActionLog] = useState<ActionLogEntry[]>([]);
+  const [unblockingIp, setUnblockingIp] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -150,7 +195,57 @@ export default function AdminDashboard() {
     loadExecutive();
     const interval = setInterval(loadExecutive, 6000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Full "Hacker Action Log" — every unauthorized action, warning, and block.
+  useEffect(() => {
+    const loadActionLog = () => {
+      apiFetch("/security/action-log").then((data: { actions: ActionLogEntry[] }) => setActionLog(data.actions)).catch(() => {});
+    };
+    loadActionLog();
+    const interval = setInterval(loadActionLog, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Live Audio/Visual Push Notifications — real-time SSE stream for purchases and blocked threats.
+  useEffect(() => {
+    const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+    const source = new EventSource(`${base}/api/security/live-stream`, { withCredentials: true });
+    source.onmessage = (evt) => {
+      if (!evt.data) return;
+      let payload: LiveEvent;
+      try {
+        payload = JSON.parse(evt.data);
+      } catch {
+        return;
+      }
+      playPushChime(payload.type);
+      toast({
+        title: payload.type === "purchase" ? "💰 Package purchased" : payload.type === "ip_unblocked" ? "IP unblocked" : "🚨 Threat blocked",
+        description: payload.message,
+        variant: payload.type === "threat_blocked" ? "destructive" : "default",
+      });
+    };
+    source.onerror = () => {
+      // EventSource auto-reconnects; nothing to do here.
+    };
+    return () => source.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUnblockIp = async (ip: string) => {
+    setUnblockingIp(ip);
+    try {
+      await apiFetch("/security/unblock-ip", { method: "POST", body: JSON.stringify({ ip }) });
+      setThreatSummary((prev) => (prev ? { ...prev, blockedIpList: prev.blockedIpList.filter((b) => b.ip !== ip), activeBlockedIps: Math.max(0, prev.activeBlockedIps - 1) } : prev));
+      toast({ title: "IP unblocked", description: `${ip} now has full access again.` });
+    } catch {
+      toast({ title: "Unblock failed", description: `Could not unblock ${ip}.`, variant: "destructive" });
+    } finally {
+      setUnblockingIp(null);
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -326,9 +421,10 @@ export default function AdminDashboard() {
             <span className="text-red-300">Monitoring globally</span>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           {[
             { label: "Threats Auto-Blocked", value: threatSummary?.totalThreatsBlocked ?? 0, icon: Ban },
+            { label: "Pre-Block Warnings", value: threatSummary?.totalPreBlockWarnings ?? 0, icon: BellRing },
             { label: "Active Blocked IPs", value: threatSummary?.activeBlockedIps ?? 0, icon: ShieldBan },
             { label: "Defense Coverage", value: "Global", icon: Globe2 },
           ].map((stat) => (
@@ -341,7 +437,44 @@ export default function AdminDashboard() {
             </Card>
           ))}
         </div>
-        <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+
+        {/* Blocked IP management — 1-Click IP Unblock override */}
+        <Card className="bg-[hsl(240,15%,8%)] border-white/8 mb-4" data-testid="card-blocked-ip-management">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Unlock className="w-4 h-4 text-yellow-300" /> Blocked IP Management — Owner Override
+            </div>
+          </CardHeader>
+          <CardContent className="max-h-48 overflow-y-auto flex flex-col gap-2">
+            {!threatSummary || threatSummary.blockedIpList.length === 0 ? (
+              <p className="text-sm text-muted-foreground/60 py-4 text-center">No IPs are currently blocked.</p>
+            ) : (
+              threatSummary.blockedIpList.map((b) => (
+                <div
+                  key={b.ip}
+                  className="flex items-center justify-between gap-3 text-xs border-l-2 border-yellow-400/40 pl-2 py-1"
+                  data-testid={`blocked-ip-${b.ip}`}
+                >
+                  <div className="min-w-0">
+                    <span className="text-white font-mono">{b.ip}</span>
+                    <span className="text-muted-foreground"> · {b.reason}</span>
+                    <span className="text-muted-foreground/40"> · expires {new Date(b.expiresAt).toLocaleTimeString()}</span>
+                  </div>
+                  <button
+                    onClick={() => handleUnblockIp(b.ip)}
+                    disabled={unblockingIp === b.ip}
+                    className="flex-shrink-0 inline-flex items-center gap-1 rounded-md border border-yellow-400/40 bg-yellow-400/10 px-2 py-1 text-[10px] font-semibold text-yellow-300 hover:bg-yellow-400/20 disabled:opacity-50 transition-colors"
+                    data-testid={`button-unblock-${b.ip}`}
+                  >
+                    <Unlock className="w-3 h-3" /> {unblockingIp === b.ip ? "Unblocking..." : "1-Click Unblock"}
+                  </button>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[hsl(240,15%,8%)] border-white/8 mb-4">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <AlertTriangle className="w-4 h-4 text-red-400" /> Live Threat Feed
@@ -372,6 +505,53 @@ export default function AdminDashboard() {
                 ))
               )}
             </AnimatePresence>
+          </CardContent>
+        </Card>
+
+        {/* Full "Hacker Action Log" — every unauthorized action, bad request, and exploit attempt with full detail */}
+        <Card className="bg-[hsl(240,15%,8%)] border-white/8" data-testid="card-hacker-action-log">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <ScrollText className="w-4 h-4 text-red-400" /> Hacker Action Log — Full Audit Trail
+            </div>
+          </CardHeader>
+          <CardContent className="max-h-72 overflow-y-auto p-0">
+            {actionLog.length === 0 ? (
+              <p className="text-sm text-muted-foreground/60 py-6 text-center">No unauthorized actions recorded yet.</p>
+            ) : (
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-[hsl(240,15%,8%)] text-muted-foreground/60">
+                  <tr className="text-left">
+                    <th className="px-3 py-2 font-medium">Timestamp</th>
+                    <th className="px-3 py-2 font-medium">IP Address</th>
+                    <th className="px-3 py-2 font-medium">Action</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {actionLog.map((entry) => (
+                    <tr key={entry.id} data-testid={`action-log-row-${entry.id}`}>
+                      <td className="px-3 py-2 text-muted-foreground/50 whitespace-nowrap">{new Date(entry.createdAt).toLocaleString()}</td>
+                      <td className="px-3 py-2 font-mono text-white whitespace-nowrap">{entry.ip}</td>
+                      <td className="px-3 py-2 text-muted-foreground max-w-xs">
+                        <span className="text-muted-foreground/50">{entry.method} {entry.path}</span> — {entry.action}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {entry.blocked ? (
+                          <Badge variant="outline" className="text-[9px] uppercase px-1.5 py-0 text-red-300 border-red-400/40 bg-red-400/10">Blocked</Badge>
+                        ) : entry.preBlockWarning ? (
+                          <Badge variant="outline" className="text-[9px] uppercase px-1.5 py-0 text-yellow-300 border-yellow-400/30 bg-yellow-400/10">
+                            Warned ({entry.attemptNumber}/2)
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] uppercase px-1.5 py-0 text-muted-foreground border-white/15">Logged</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </CardContent>
         </Card>
       </div>

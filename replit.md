@@ -30,7 +30,7 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Super Admin Dashboard includes an automated threat-defense/audit system: a "Hacker Action Log" recording every suspicious request in full detail, live SSE push notifications (with sound) for purchases and blocked threats, a "Blocked IP Management" panel with 1-click unblock, and a pre-block warning mechanism (first 2 suspicious attempts per IP get a warning banner, the 3rd+ triggers a hard block).
 
 ## User preferences
 

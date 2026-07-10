@@ -31,6 +31,7 @@ app.use(
   cors({
     origin: true,
     credentials: true,
+    exposedHeaders: ["X-Security-Warning"],
   }),
 );
 
@@ -50,6 +51,15 @@ app.use((req, res, next) => {
     userAgent: req.headers["user-agent"],
   });
   if (threat) {
+    if (threat.preBlockWarning) {
+      // Strict pre-block warning: surface it to the offending client via a
+      // response header (read by the frontend to show a warning banner) but
+      // let the request through — the hard block only kicks in once the
+      // warning limit is exceeded (see threat-store.ts).
+      res.setHeader("X-Security-Warning", JSON.stringify({ reason: threat.reason, attemptNumber: threat.attemptNumber }));
+      next();
+      return;
+    }
     res.status(403).json({ error: "ACCESS_BLOCKED", message: "Blocked by automated threat defense", reason: threat.reason });
     return;
   }

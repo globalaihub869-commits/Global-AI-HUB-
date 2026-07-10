@@ -2,3 +2,4 @@
 - [screenshot tool auth isolation](screenshot-tool-auth.md) — curl-based cookie login doesn't authenticate the screenshot tool's browser session.
 - [IP-based auto-blocking in shared dev proxy](ip-blocking-shared-proxy.md) — scope hard IP/UA blocking to sensitive routes only, or a shared proxy IP can self-DOS all dev traffic.
 - [Global AI Hub tier/growth engine](global-ai-hub-tier-growth-engine.md) — plan limits, referral rewards, and analytics all derive from the same in-memory stores; keep new features additive to avoid duplicating sources of truth.
+- [IP-based hard blocking self-lockout](ip-blocking-self-lockout.md) — hard IP blocks apply to ALL requests from that IP including the admin's own session; test exploit-detection with a spare/incognito session or expect to get locked out and need a workflow restart.

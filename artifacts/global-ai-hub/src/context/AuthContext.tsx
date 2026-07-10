@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { checkForSecurityWarning } from "@/lib/securityWarnings";
 
 export type ProfileType = "developer" | "business" | "student";
 export type Role = "admin" | "user";
@@ -37,6 +38,7 @@ export async function apiFetch(path: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     ...init,
   });
+  checkForSecurityWarning(res);
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(json.message ?? "Request failed"), { code: json.error, status: res.status });
   return json;
