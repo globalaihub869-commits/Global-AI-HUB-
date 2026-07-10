@@ -1,2 +1,3 @@
 - [api-server no watch mode](api-server-no-watch.md) — must restart the API Server workflow after any backend `.ts` change before testing.
 - [screenshot tool auth isolation](screenshot-tool-auth.md) — curl-based cookie login doesn't authenticate the screenshot tool's browser session.
+- [IP-based auto-blocking in shared dev proxy](ip-blocking-shared-proxy.md) — scope hard IP/UA blocking to sensitive routes only, or a shared proxy IP can self-DOS all dev traffic.
