@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldAlert, Activity, Users, Globe2, Gauge, LifeBuoy, Clock, CheckCircle2, AlertTriangle, CircleDot,
-  BrainCircuit, Bot, Ticket as TicketIcon, Code2, Blocks, Lock, Tag,
+  BrainCircuit, Bot, Ticket as TicketIcon, Code2, Blocks, Lock, Tag, ShieldBan, Crown, TrendingUp, Ban,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSupport, type SupportTicket } from "@/context/SupportContext";
 import { apiFetch } from "@/context/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface PlaygroundActivity {
   totalExecutions: number;
@@ -22,6 +23,45 @@ interface PlaygroundActivity {
     createdAt: number;
   }[];
 }
+
+interface ThreatEvent {
+  id: string;
+  type: string;
+  severity: "low" | "medium" | "high" | "critical";
+  ip: string;
+  reason: string;
+  blocked: boolean;
+  createdAt: number;
+}
+
+interface ThreatSummary {
+  totalThreatsBlocked: number;
+  activeBlockedIps: number;
+  blockedIpList: { ip: string; reason: string; expiresAt: number }[];
+  recentThreats: ThreatEvent[];
+}
+
+interface ExecutiveSummary {
+  totalConversions: number;
+  highValueConversions: number;
+  totalRevenueUsdt: number;
+  enterpriseCount: number;
+  proCount: number;
+  recentConversions: {
+    id: string;
+    userEmail: string;
+    plan: string;
+    amountUsdt: number;
+    createdAt: number;
+  }[];
+}
+
+const threatSeverityStyle: Record<ThreatEvent["severity"], string> = {
+  low: "text-emerald-300 border-emerald-400/30 bg-emerald-400/10",
+  medium: "text-yellow-300 border-yellow-400/30 bg-yellow-400/10",
+  high: "text-orange-300 border-orange-400/30 bg-orange-400/10",
+  critical: "text-red-300 border-red-400/40 bg-red-400/10",
+};
 
 interface TrafficPoint {
   t: number;
@@ -65,6 +105,9 @@ export default function AdminDashboard() {
   );
   const [feed, setFeed] = useState<{ id: string; text: string }[]>([]);
   const [playgroundActivity, setPlaygroundActivity] = useState<PlaygroundActivity | null>(null);
+  const [threatSummary, setThreatSummary] = useState<ThreatSummary | null>(null);
+  const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadActivity = () => {
@@ -72,6 +115,39 @@ export default function AdminDashboard() {
     };
     loadActivity();
     const interval = setInterval(loadActivity, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    let lastSeenId: string | null = null;
+    const loadThreats = () => {
+      apiFetch("/security/threats").then((data: ThreatSummary) => {
+        setThreatSummary(data);
+        const latest = data.recentThreats[0];
+        if (latest && latest.id !== lastSeenId) {
+          if (lastSeenId !== null) {
+            toast({
+              title: "Threat auto-blocked",
+              description: latest.reason,
+              variant: "destructive",
+            });
+          }
+          lastSeenId = latest.id;
+        }
+      }).catch(() => {});
+    };
+    loadThreats();
+    const interval = setInterval(loadThreats, 4000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const loadExecutive = () => {
+      apiFetch("/security/executive-summary").then(setExecutiveSummary).catch(() => {});
+    };
+    loadExecutive();
+    const interval = setInterval(loadExecutive, 6000);
     return () => clearInterval(interval);
   }, []);
 
@@ -109,6 +185,46 @@ export default function AdminDashboard() {
         </div>
         <h1 className="text-2xl md:text-3xl font-display font-bold text-white">Live Operations Console</h1>
         <p className="text-muted-foreground mt-1">Private view — monitor real-time traffic and support health.</p>
+      </div>
+
+      {/* Owner Executive Counter */}
+      <div className="mb-8" data-testid="section-executive-counter">
+        <Card className="relative overflow-hidden border-yellow-400/30 bg-gradient-to-br from-[hsl(45,60%,10%)] via-[hsl(240,15%,8%)] to-[hsl(240,15%,8%)] shimmer-border-gold">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-yellow-300">
+                <Crown className="w-4 h-4" /> Owner Executive Counter
+              </div>
+              <Badge variant="outline" className="text-[10px] text-yellow-300 border-yellow-400/40" data-testid="badge-executive-live">
+                Live
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Total Conversions", value: executiveSummary?.totalConversions ?? 0, icon: TrendingUp },
+                { label: "High-Value Conversions", value: executiveSummary?.highValueConversions ?? 0, icon: Crown },
+                { label: "Revenue (USDT)", value: (executiveSummary?.totalRevenueUsdt ?? 0).toLocaleString(), icon: Gauge },
+                { label: "Enterprise Upgrades", value: executiveSummary?.enterpriseCount ?? 0, icon: ShieldAlert },
+              ].map((stat) => (
+                <div key={stat.label} data-testid={`executive-stat-${stat.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
+                  <stat.icon className="w-4 h-4 mb-2 text-yellow-300" />
+                  <div className="text-2xl font-display font-bold text-white">{stat.value}</div>
+                  <p className="text-xs text-muted-foreground/70 mt-1">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+            {executiveSummary && executiveSummary.recentConversions.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-1.5">
+                {executiveSummary.recentConversions.slice(0, 3).map((c) => (
+                  <div key={c.id} className="flex items-center justify-between text-xs text-muted-foreground" data-testid={`executive-conversion-${c.id}`}>
+                    <span>{c.userEmail} upgraded to <span className="text-yellow-300 capitalize">{c.plan}</span></span>
+                    <span>${c.amountUsdt} · {new Date(c.createdAt).toLocaleTimeString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Live stat tiles */}
@@ -184,6 +300,70 @@ export default function AdminDashboard() {
                     data-testid={`feed-item-${f.id}`}
                   >
                     {f.text}
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Automated Threat Defense System */}
+      <div className="mb-8" data-testid="section-threat-defense">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
+            <ShieldBan className="w-4 h-4 text-red-400" /> Automated Threat Defense System
+          </h2>
+          <div className="flex items-center gap-2 text-xs" data-testid="threat-defense-status">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-400" />
+            </span>
+            <span className="text-red-300">Monitoring globally</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+          {[
+            { label: "Threats Auto-Blocked", value: threatSummary?.totalThreatsBlocked ?? 0, icon: Ban },
+            { label: "Active Blocked IPs", value: threatSummary?.activeBlockedIps ?? 0, icon: ShieldBan },
+            { label: "Defense Coverage", value: "Global", icon: Globe2 },
+          ].map((stat) => (
+            <Card key={stat.label} className="bg-[hsl(240,15%,8%)] border-red-400/10" data-testid={`stat-threat-${stat.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
+              <CardContent className="p-4">
+                <stat.icon className="w-4 h-4 mb-2 text-red-400" />
+                <div className="text-2xl font-display font-bold text-white">{stat.value}</div>
+                <p className="text-xs text-muted-foreground/70 mt-1">{stat.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <AlertTriangle className="w-4 h-4 text-red-400" /> Live Threat Feed
+            </div>
+          </CardHeader>
+          <CardContent className="max-h-56 overflow-y-auto flex flex-col gap-2">
+            <AnimatePresence initial={false}>
+              {!threatSummary || threatSummary.recentThreats.length === 0 ? (
+                <p className="text-sm text-muted-foreground/60 py-4 text-center">No threats detected — all clear.</p>
+              ) : (
+                threatSummary.recentThreats.map((t) => (
+                  <motion.div
+                    key={t.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center justify-between gap-3 text-xs border-l-2 border-red-400/40 pl-2"
+                    data-testid={`threat-event-${t.id}`}
+                  >
+                    <div className="min-w-0 flex items-center gap-2">
+                      <Badge variant="outline" className={`text-[9px] uppercase px-1.5 py-0 ${threatSeverityStyle[t.severity]}`}>
+                        {t.severity}
+                      </Badge>
+                      <span className="text-muted-foreground truncate">{t.reason}</span>
+                    </div>
+                    <span className="text-muted-foreground/40 flex-shrink-0">{new Date(t.createdAt).toLocaleTimeString()}</span>
                   </motion.div>
                 ))
               )}

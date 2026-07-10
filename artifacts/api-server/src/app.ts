@@ -4,8 +4,14 @@ import session from "express-session";
 import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
+import { inspectRequest, isBlocked } from "./lib/threat-store.js";
 
 const app: Express = express();
+
+// Trust the platform's reverse proxy so req.ip reflects the real client IP
+// (from X-Forwarded-For) instead of the shared proxy's local address. This
+// matters for the threat defense system below, which blocks by IP.
+app.set("trust proxy", true);
 
 app.use(
   pinoHttp({
@@ -30,6 +36,25 @@ app.use(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use((req, res, next) => {
+  const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+  if (isBlocked(ip)) {
+    res.status(403).json({ error: "ACCESS_BLOCKED", message: "This IP has been automatically blocked by the threat defense system" });
+    return;
+  }
+  const threat = inspectRequest({
+    ip,
+    method: req.method,
+    url: req.originalUrl,
+    userAgent: req.headers["user-agent"],
+  });
+  if (threat) {
+    res.status(403).json({ error: "ACCESS_BLOCKED", message: "Blocked by automated threat defense", reason: threat.reason });
+    return;
+  }
+  next();
+});
 
 const sessionSecret = process.env["SESSION_SECRET"];
 if (!sessionSecret) {

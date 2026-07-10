@@ -7,6 +7,7 @@ import {
   toPublic,
   type ProfileType,
 } from "../lib/users.js";
+import { recordFailedLogin } from "../lib/threat-store.js";
 
 declare module "express-session" {
   interface SessionData {
@@ -59,6 +60,8 @@ router.post("/auth/login", async (req, res) => {
 
   const user = await verifyUser(email, password);
   if (!user) {
+    const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+    recordFailedLogin(ip);
     res.status(401).json({ error: "INVALID_CREDENTIALS", message: "Incorrect email or password" });
     return;
   }

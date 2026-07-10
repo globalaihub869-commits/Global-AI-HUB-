@@ -9,6 +9,7 @@ import {
   buildInvoice,
   type Network,
 } from "../lib/billing-store.js";
+import { recordConversion } from "../lib/conversions-store.js";
 
 const router: IRouter = Router();
 
@@ -85,6 +86,12 @@ router.post("/billing/verify", requireAuth, (req, res) => {
         return;
       }
       const invoice = buildInvoice(result.session, user.email);
+      recordConversion({
+        userId: user.id,
+        userEmail: user.email,
+        plan: result.session.plan,
+        amountUsdt: result.session.amountUsdt,
+      });
       res.json({ session: result.session, user: toPublic(user), invoice });
       return;
     }
