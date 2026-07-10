@@ -5,6 +5,7 @@ import { CircuitBoard, Eye, EyeOff, UserPlus, AlertCircle, Check, Gift } from "l
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import GoogleOAuthButton from "@/components/auth/GoogleOAuthButton";
 
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
@@ -176,7 +177,18 @@ export default function Signup() {
               </Button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-white/8 text-center">
+            <div className="mt-6">
+              <div className="relative flex items-center gap-3">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-xs text-muted-foreground/50 uppercase tracking-widest">or</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+              <div className="mt-4">
+                <GoogleOAuthButton mode="signup" />
+              </div>
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-white/8 text-center">
               <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link href="/login" className="text-primary hover:text-primary/80 font-semibold transition-colors" data-testid="link-login">

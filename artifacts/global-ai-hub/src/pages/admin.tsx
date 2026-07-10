@@ -11,6 +11,9 @@ import { useSupport, type SupportTicket } from "@/context/SupportContext";
 import { apiFetch } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import ExecutiveAnalytics from "@/components/admin/ExecutiveAnalytics";
+import LiveRevenueTracker from "@/components/admin/LiveRevenueTracker";
+import HackerIntrusionLog from "@/components/admin/HackerIntrusionLog";
+import VipEmailerPanel from "@/components/admin/VipEmailerPanel";
 
 interface PlaygroundActivity {
   totalExecutions: number;
@@ -417,6 +420,11 @@ export default function AdminDashboard() {
       {/* Executive revenue/usage analytics + PDF export */}
       <ExecutiveAnalytics />
 
+      {/* Live Revenue Tracker */}
+      <div className="mb-8" data-testid="section-live-revenue">
+        <LiveRevenueTracker />
+      </div>
+
       {/* Live stat tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
@@ -599,6 +607,11 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* Premium Hacker Intrusion Log — severity-filtered, live-updating, color-coded */}
+        <div className="mb-4" data-testid="card-hacker-intrusion-log">
+          <HackerIntrusionLog />
+        </div>
+
         {/* Full "Hacker Action Log" — every unauthorized action, bad request, and exploit attempt with full detail */}
         <Card className="bg-[hsl(240,15%,8%)] border-white/8" data-testid="card-hacker-action-log">
           <CardHeader className="pb-2">
@@ -696,6 +709,11 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* VIP Welcome Emailer */}
+      <div className="mb-8" data-testid="section-vip-emailer">
+        <VipEmailerPanel />
       </div>
 
       {/* Playground & No-Code Builder activity */}

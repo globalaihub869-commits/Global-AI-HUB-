@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SocialProvider } from "@/context/SocialContext";
 import { SupportProvider } from "@/context/SupportContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import NotFound from "@/pages/not-found";
 
 import Navbar from "@/components/layout/Navbar";
@@ -209,23 +210,25 @@ function Router() {
 function App() {
   return (
     <HelmetProvider>
-      <LanguageProvider>
-        <AuthProvider>
-          <SocialProvider>
-            <SupportProvider>
-              <QueryClientProvider client={queryClient}>
-                <TooltipProvider>
-                  <SecurityWarningBanner />
-                  <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                    <Router />
-                  </WouterRouter>
-                  <Toaster />
-                </TooltipProvider>
-              </QueryClientProvider>
-            </SupportProvider>
-          </SocialProvider>
-        </AuthProvider>
-      </LanguageProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <SocialProvider>
+              <SupportProvider>
+                <QueryClientProvider client={queryClient}>
+                  <TooltipProvider>
+                    <SecurityWarningBanner />
+                    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                      <Router />
+                    </WouterRouter>
+                    <Toaster />
+                  </TooltipProvider>
+                </QueryClientProvider>
+              </SupportProvider>
+            </SocialProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </HelmetProvider>
   );
 }

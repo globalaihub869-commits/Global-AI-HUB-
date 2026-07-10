@@ -246,6 +246,19 @@
   --ambient-contrast: 0.94;
 }
 
+/* Premium Dark/Light Mode: smooth flicker-free theme transitions */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition:
+    background-color 350ms ease,
+    border-color 350ms ease,
+    color 250ms ease,
+    box-shadow 350ms ease,
+    opacity 200ms ease !important;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -253,7 +266,7 @@
   body {
     @apply font-sans antialiased bg-background text-foreground selection:bg-primary/30 selection:text-white;
     filter: brightness(var(--ambient-bg-brightness)) contrast(var(--ambient-contrast));
-    transition: filter 900ms ease;
+    transition: filter 900ms ease, background-color 350ms ease;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;

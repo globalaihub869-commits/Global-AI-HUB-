@@ -5,6 +5,7 @@ import { CircuitBoard, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import GoogleOAuthButton from "@/components/auth/GoogleOAuthButton";
 
 export default function Login() {
   const { login } = useAuth();
@@ -141,7 +142,18 @@ export default function Login() {
               </Button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-white/8 text-center">
+            <div className="mt-6">
+              <div className="relative flex items-center gap-3">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-xs text-muted-foreground/50 uppercase tracking-widest">or</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+              <div className="mt-4">
+                <GoogleOAuthButton mode="login" />
+              </div>
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-white/8 text-center">
               <p className="text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
                 <Link href="/signup" className="text-primary hover:text-primary/80 font-semibold transition-colors" data-testid="link-signup">

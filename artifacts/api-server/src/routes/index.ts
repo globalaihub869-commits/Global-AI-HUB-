@@ -13,6 +13,7 @@ import securityRouter from "./security.js";
 import referralsRouter from "./referrals.js";
 import analyticsRouter from "./analytics.js";
 import supportRouter from "./support.js";
+import vipRouter from "./vip.js";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(securityRouter);
 router.use(referralsRouter);
 router.use(analyticsRouter);
 router.use(supportRouter);
+router.use("/vip", vipRouter);
 
 export default router;
