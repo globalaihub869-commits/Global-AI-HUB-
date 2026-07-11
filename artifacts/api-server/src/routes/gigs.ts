@@ -5,13 +5,13 @@ import { recordActivity } from "../lib/social-store.js";
 
 const router: IRouter = Router();
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session.userId;
   if (!userId) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;
   }
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;
@@ -35,10 +35,10 @@ router.get("/gigs/:id", (req, res) => {
   res.json({ gig });
 });
 
-router.post("/gigs/:id/purchase", requireAuth, (req, res) => {
+router.post("/gigs/:id/purchase", requireAuth, async (req, res) => {
   const user = res.locals.currentUser as { id: string; name: string };
   const { id } = req.params as { id: string };
-  const result = purchaseGig(user.id, id);
+  const result = await purchaseGig(user.id, id);
 
   if (result.status === "not_found") {
     res.status(404).json({ error: "NOT_FOUND", message: "Gig not found" });
@@ -49,7 +49,7 @@ router.post("/gigs/:id/purchase", requireAuth, (req, res) => {
     return;
   }
 
-  const refreshedUser = getUserById(user.id)!;
+  const refreshedUser = (await getUserById(user.id))!;
   req.log.info({ userId: user.id, gigId: id }, "gig purchased");
   res.status(200).json({ gig: result.gig, walletBalanceUsd: result.walletBalanceUsd, user: toPublic(refreshedUser) });
 });

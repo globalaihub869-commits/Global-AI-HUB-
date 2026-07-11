@@ -128,14 +128,14 @@ export type PurchaseResult =
   | { status: "not_found" }
   | { status: "insufficient_balance"; walletBalanceUsd: number };
 
-export function purchaseListing(userId: string, listingId: string): PurchaseResult {
+export async function purchaseListing(userId: string, listingId: string): Promise<PurchaseResult> {
   const listing = getListing(listingId);
   if (!listing) return { status: "not_found" };
 
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user) return { status: "not_found" };
 
-  const updated = debitWallet(userId, listing.priceUsd);
+  const updated = await debitWallet(userId, listing.priceUsd);
   if (!updated) return { status: "insufficient_balance", walletBalanceUsd: user.walletBalanceUsd };
 
   listing.salesCount += 1;

@@ -11,9 +11,9 @@ import {
 
 const router: IRouter = Router();
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session.userId;
-  const user = userId ? getUserById(userId) : undefined;
+  const user = userId ? await getUserById(userId) : undefined;
   if (!user) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;
@@ -22,9 +22,9 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
+async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const userId = req.session.userId;
-  const user = userId ? getUserById(userId) : undefined;
+  const user = userId ? await getUserById(userId) : undefined;
   if (!user || user.role !== "admin") {
     res.status(403).json({ error: "FORBIDDEN", message: "Admin access required" });
     return;
@@ -32,20 +32,20 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-router.get("/playground/usage", requireAuth, (req, res) => {
+router.get("/playground/usage", requireAuth, async (req, res) => {
   const userId = req.session.userId!;
-  const user = getUserById(userId)!;
+  const user = (await getUserById(userId))!;
   res.json(getUsage(userId, user.plan));
 });
 
-router.post("/playground/execute", requireAuth, (req, res) => {
+router.post("/playground/execute", requireAuth, async (req, res) => {
   const { code } = req.body as { code?: string };
   if (typeof code !== "string" || !code.trim()) {
     res.status(400).json({ error: "MISSING_CODE", message: "code is required" });
     return;
   }
   const userId = req.session.userId!;
-  const user = getUserById(userId)!;
+  const user = (await getUserById(userId))!;
   const result = executeSandboxCode(userId, user.plan, code);
 
   if (result.status === "locked") {
@@ -61,14 +61,14 @@ router.post("/playground/execute", requireAuth, (req, res) => {
   res.json(result);
 });
 
-router.post("/playground/widgets", requireAuth, (req, res) => {
+router.post("/playground/widgets", requireAuth, async (req, res) => {
   const { name, type, description } = req.body as { name?: string; type?: string; description?: string };
   if (!name?.trim() || !type?.trim()) {
     res.status(400).json({ error: "MISSING_FIELDS", message: "name and type are required" });
     return;
   }
   const userId = req.session.userId!;
-  const user = getUserById(userId)!;
+  const user = (await getUserById(userId))!;
   const result = createWidgetChecked(userId, user.plan, name.trim(), type.trim(), (description ?? "").trim());
 
   if (result.status === "locked") {

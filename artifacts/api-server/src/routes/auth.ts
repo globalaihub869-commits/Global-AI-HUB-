@@ -43,11 +43,9 @@ router.post("/auth/signup", async (req, res) => {
     const user = await createUser(email, name, password);
     req.session.userId = user.id;
 
-    // Optional Smart Growth (SG) referral redemption. Purely additive: any
-    // failure here (invalid/self code) never blocks the signup itself.
     if (referralCode && referralCode.trim()) {
       const ownerId = getReferralOwnerId(referralCode.trim());
-      const referrer = ownerId ? getUserById(ownerId) : undefined;
+      const referrer = ownerId ? await getUserById(ownerId) : undefined;
       if (referrer) {
         redeemReferral(referralCode.trim(), user.id, user.email, referrer.plan);
       }
@@ -83,13 +81,13 @@ router.post("/auth/login", async (req, res) => {
   res.json({ user: toPublic(user) });
 });
 
-router.get("/auth/me", (req, res) => {
+router.get("/auth/me", async (req, res) => {
   const userId = req.session.userId;
   if (!userId) {
     res.status(401).json({ error: "UNAUTHENTICATED" });
     return;
   }
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user) {
     req.session.destroy(() => {});
     res.status(401).json({ error: "UNAUTHENTICATED" });
@@ -105,7 +103,7 @@ router.post("/auth/logout", (req, res) => {
   });
 });
 
-router.patch("/auth/profile", (req, res) => {
+router.patch("/auth/profile", async (req, res) => {
   const userId = req.session.userId;
   if (!userId) {
     res.status(401).json({ error: "UNAUTHENTICATED" });
@@ -118,7 +116,7 @@ router.patch("/auth/profile", (req, res) => {
     return;
   }
 
-  const user = updateUserProfile(userId, profileType);
+  const user = await updateUserProfile(userId, profileType);
   if (!user) {
     res.status(404).json({ error: "USER_NOT_FOUND" });
     return;

@@ -22,13 +22,13 @@ import {
 
 const router: IRouter = Router();
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session.userId;
   if (!userId) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;
   }
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;

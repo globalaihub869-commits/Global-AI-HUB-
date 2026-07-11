@@ -150,13 +150,13 @@ export type GigPurchaseResult =
   | { status: "not_found" }
   | { status: "insufficient_balance"; walletBalanceUsd: number };
 
-export function purchaseGig(userId: string, gigId: string): GigPurchaseResult {
+export async function purchaseGig(userId: string, gigId: string): Promise<GigPurchaseResult> {
   const gig = getGig(gigId);
   if (!gig) return { status: "not_found" };
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user) return { status: "not_found" };
 
-  const updated = debitWallet(userId, gig.priceUsd);
+  const updated = await debitWallet(userId, gig.priceUsd);
   if (!updated) return { status: "insufficient_balance", walletBalanceUsd: user.walletBalanceUsd };
 
   return { status: "ok", gig, walletBalanceUsd: updated.walletBalanceUsd };

@@ -9,13 +9,13 @@ import {
 
 const router: IRouter = Router();
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session.userId;
   if (!userId) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;
   }
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;
@@ -40,10 +40,10 @@ router.get("/marketplace/vendor-stats", requireAuth, (_req, res) => {
   res.json({ ...getVendorDashboardStats(), walletBalanceUsd: user.walletBalanceUsd });
 });
 
-router.post("/marketplace/listings/:id/purchase", requireAuth, (req, res) => {
+router.post("/marketplace/listings/:id/purchase", requireAuth, async (req, res) => {
   const user = res.locals.currentUser as { id: string };
   const { id } = req.params as { id: string };
-  const result = purchaseListing(user.id, id);
+  const result = await purchaseListing(user.id, id);
 
   if (result.status === "not_found") {
     res.status(404).json({ error: "NOT_FOUND", message: "Listing not found" });
@@ -54,7 +54,7 @@ router.post("/marketplace/listings/:id/purchase", requireAuth, (req, res) => {
     return;
   }
 
-  const refreshedUser = getUserById(user.id)!;
+  const refreshedUser = (await getUserById(user.id))!;
   req.log.info({ userId: user.id, listingId: id }, "marketplace listing purchased");
   res.status(200).json({ listing: result.listing, walletBalanceUsd: result.walletBalanceUsd, user: toPublic(refreshedUser) });
 });

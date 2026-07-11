@@ -4,9 +4,9 @@ import { getReferralStats, getAdminReferralSummary } from "../lib/referral-store
 
 const router: IRouter = Router();
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session.userId;
-  const user = userId ? getUserById(userId) : undefined;
+  const user = userId ? await getUserById(userId) : undefined;
   if (!user) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;
@@ -14,9 +14,9 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
+async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const userId = req.session.userId;
-  const user = userId ? getUserById(userId) : undefined;
+  const user = userId ? await getUserById(userId) : undefined;
   if (!user || user.role !== "admin") {
     res.status(403).json({ error: "FORBIDDEN", message: "Admin access required" });
     return;
@@ -24,9 +24,9 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-router.get("/referrals/me", requireAuth, (req, res) => {
+router.get("/referrals/me", requireAuth, async (req, res) => {
   const userId = req.session.userId!;
-  const user = getUserById(userId)!;
+  const user = (await getUserById(userId))!;
   res.json(getReferralStats(userId, user.plan));
 });
 

@@ -14,13 +14,13 @@ import { publishLiveEvent } from "../lib/live-events.js";
 
 const router: IRouter = Router();
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session.userId;
   if (!userId) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;
   }
-  const user = getUserById(userId);
+  const user = await getUserById(userId);
   if (!user) {
     res.status(401).json({ error: "UNAUTHENTICATED", message: "You must be signed in" });
     return;
@@ -58,7 +58,7 @@ router.get("/billing/checkout/:id", requireAuth, (req, res) => {
   res.json({ session });
 });
 
-router.post("/billing/verify", requireAuth, (req, res) => {
+router.post("/billing/verify", requireAuth, async (req, res) => {
   const { sessionId, txId } = req.body as { sessionId?: string; txId?: string };
   if (!sessionId || !txId) {
     res.status(400).json({ error: "MISSING_FIELDS", message: "sessionId and txId are required" });
@@ -81,7 +81,7 @@ router.post("/billing/verify", requireAuth, (req, res) => {
       res.status(400).json({ error: "INVALID_TXID", message: "That transaction hash could not be verified on-chain" });
       return;
     case "confirmed": {
-      const user = upgradeUserPlan(userId, result.session.plan);
+      const user = await upgradeUserPlan(userId, result.session.plan);
       if (!user) {
         res.status(404).json({ error: "USER_NOT_FOUND" });
         return;

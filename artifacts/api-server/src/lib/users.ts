@@ -1,5 +1,7 @@
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
+import { db, usersTable } from "@workspace/db";
+import { eq, and, gte, sql } from "drizzle-orm";
 
 export type ProfileType = "developer" | "business" | "student";
 export type Role = "admin" | "user";
@@ -32,8 +34,22 @@ export interface PublicUser {
 
 export const TRIAL_WALLET_STARTING_BALANCE = 5.0;
 
-const users = new Map<string, User>();
-const emailIndex = new Map<string, string>();
+const ADMIN_EMAIL = "faisalmiraj313@gmail.com";
+
+function rowToUser(row: typeof usersTable.$inferSelect): User {
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    passwordHash: row.passwordHash,
+    profileType: row.profileType as ProfileType | null,
+    role: row.role as Role,
+    createdAt: row.createdAt,
+    plan: row.plan as PlanTier,
+    planActivatedAt: row.planActivatedAt ?? null,
+    walletBalanceUsd: row.walletBalanceUsd,
+  };
+}
 
 export function toPublic(user: User): PublicUser {
   return {
@@ -54,64 +70,92 @@ export async function createUser(
   name: string,
   password: string,
 ): Promise<User> {
-  const existing = emailIndex.get(email.toLowerCase());
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const [existing] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, normalizedEmail))
+    .limit(1);
   if (existing) throw new Error("EMAIL_TAKEN");
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const normalizedEmail = email.toLowerCase().trim();
-  const user: User = {
-    id: randomUUID(),
-    email: normalizedEmail,
-    name: name.trim(),
-    passwordHash,
-    profileType: null,
-    // Demo-only role assignment: any email local-part starting with "admin" becomes a Super Admin.
-  role: normalizedEmail === "faisalmiraj313@gmail.com" ? "admin" : (normalizedEmail.startsWith("admin") ? "admin" : "user"),
-    plan: "free",
-    planActivatedAt: null,
-    walletBalanceUsd: TRIAL_WALLET_STARTING_BALANCE,
-  };
+  const role: Role =
+    normalizedEmail === ADMIN_EMAIL || normalizedEmail.startsWith("admin")
+      ? "admin"
+      : "user";
 
-  users.set(user.id, user);
-  emailIndex.set(user.email, user.id);
-  return user;
+  const [row] = await db
+    .insert(usersTable)
+    .values({
+      id: randomUUID(),
+      email: normalizedEmail,
+      name: name.trim(),
+      passwordHash,
+      role,
+      plan: "free",
+      walletBalanceUsd: TRIAL_WALLET_STARTING_BALANCE,
+    })
+    .returning();
+
+  return rowToUser(row!);
 }
 
 export async function verifyUser(
   email: string,
   password: string,
 ): Promise<User | null> {
-  const id = emailIndex.get(email.toLowerCase().trim());
-  if (!id) return null;
-  const user = users.get(id);
-  if (!user) return null;
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  return ok ? user : null;
+  const [row] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, email.toLowerCase().trim()))
+    .limit(1);
+  if (!row) return null;
+  const ok = await bcrypt.compare(password, row.passwordHash);
+  return ok ? rowToUser(row) : null;
 }
 
-export function getUserById(id: string): User | undefined {
-  return users.get(id);
+export async function getUserById(id: string): Promise<User | undefined> {
+  const [row] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, id))
+    .limit(1);
+  return row ? rowToUser(row) : undefined;
 }
 
-export function updateUserProfile(id: string, profileType: ProfileType): User | null {
-  const user = users.get(id);
-  if (!user) return null;
-  user.profileType = profileType;
-  return user;
+export async function updateUserProfile(
+  id: string,
+  profileType: ProfileType,
+): Promise<User | null> {
+  const [row] = await db
+    .update(usersTable)
+    .set({ profileType })
+    .where(eq(usersTable.id, id))
+    .returning();
+  return row ? rowToUser(row) : null;
 }
 
-export function upgradeUserPlan(id: string, plan: PlanTier): User | null {
-  const user = users.get(id);
-  if (!user) return null;
-  user.plan = plan;
-  user.planActivatedAt = new Date();
-  return user;
+export async function upgradeUserPlan(
+  id: string,
+  plan: PlanTier,
+): Promise<User | null> {
+  const [row] = await db
+    .update(usersTable)
+    .set({ plan, planActivatedAt: new Date() })
+    .where(eq(usersTable.id, id))
+    .returning();
+  return row ? rowToUser(row) : null;
 }
 
-export function debitWallet(id: string, amountUsd: number): User | null {
-  const user = users.get(id);
-  if (!user) return null;
-  if (user.walletBalanceUsd < amountUsd) return null;
-  user.walletBalanceUsd = Math.round((user.walletBalanceUsd - amountUsd) * 100) / 100;
-  return user;
+export async function debitWallet(
+  id: string,
+  amountUsd: number,
+): Promise<User | null> {
+  const [row] = await db
+    .update(usersTable)
+    .set({ walletBalanceUsd: sql`wallet_balance_usd - ${amountUsd}` })
+    .where(and(eq(usersTable.id, id), gte(usersTable.walletBalanceUsd, amountUsd)))
+    .returning();
+  return row ? rowToUser(row) : null;
 }
