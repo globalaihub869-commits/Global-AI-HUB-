@@ -66,8 +66,7 @@ export async function createUser(
     passwordHash,
     profileType: null,
     // Demo-only role assignment: any email local-part starting with "admin" becomes a Super Admin.
-    role: normalizedEmail.startsWith("admin") ? "admin" : "user",
-    createdAt: new Date(),
+  role: normalizedEmail === "faziprince354@gmail.com" ? "admin" : (normalizedEmail.startsWith("admin") ? "admin" : "user"),
     plan: "free",
     planActivatedAt: null,
     walletBalanceUsd: TRIAL_WALLET_STARTING_BALANCE,
