@@ -16,6 +16,7 @@ import EscrowBadge from "@/components/marketplace/EscrowBadge";
 import StarRating from "@/components/marketplace/StarRating";
 import LiveActivityStream from "@/components/marketplace/LiveActivityStream";
 import VendorDashboardWidget from "@/components/marketplace/VendorDashboardWidget";
+import OrderModal from "@/components/gigs/OrderModal";
 
 const CATEGORIES = ["All", "Models", "Agents", "APIs", "Templates"] as const;
 const SUBCATEGORIES = ["All", "Chatbots", "Automation"] as const;
@@ -141,6 +142,9 @@ export default function Marketplace() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("All");
   const [subcategory, setSubcategory] = useState<string>("All");
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+
+  const walletBalance: number = user?.walletBalanceUsd ?? 0;
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["marketplaceListings", search, category, subcategory],
@@ -157,7 +161,8 @@ export default function Marketplace() {
   const purchase = useMutation({
     mutationFn: (listing: Listing) => apiFetch(`/marketplace/listings/${listing.id}/purchase`, { method: "POST" }),
     onSuccess: (res: any, listing) => {
-      toast({ title: "Purchase complete!", description: `${listing.name} unlocked. Funds released via Secure Escrow.` });
+      setSelectedListing(null);
+      toast({ title: "🎉 Purchase complete!", description: `${listing.name} unlocked. Funds released via Secure Escrow.` });
       if (res.user) setUser(res.user);
       earnTokens("tool_visited", listing.name);
       queryClient.invalidateQueries({ queryKey: ["marketplaceListings"] });
@@ -165,12 +170,13 @@ export default function Marketplace() {
       queryClient.invalidateQueries({ queryKey: ["vendorDashboardStats"] });
     },
     onError: (err: any) => {
+      setSelectedListing(null);
       if (err.code === "INSUFFICIENT_BALANCE") {
-        toast({ title: "Insufficient trial wallet balance", description: "Top up your wallet to complete this purchase.", variant: "destructive" });
+        toast({ title: "Insufficient balance", description: "Upgrade your plan to unlock full wallet access.", variant: "destructive" });
       } else if (err.status === 401) {
         toast({ title: "Sign in required", description: "Log in to purchase marketplace listings.", variant: "destructive" });
       } else {
-        toast({ title: "Purchase failed", description: "Please try again.", variant: "destructive" });
+        toast({ title: "Purchase failed", description: err.message ?? "Please try again.", variant: "destructive" });
       }
     },
   });
@@ -179,15 +185,22 @@ export default function Marketplace() {
   const clearAll = () => { setSearch(""); setCategory("All"); setSubcategory("All"); };
 
   const handleBuy = (listing: Listing) => {
-    if (!isAuthenticated) {
-      toast({ title: "Sign in required", description: "Log in to purchase marketplace listings.", variant: "destructive" });
-      return;
-    }
-    purchase.mutate(listing);
+    setSelectedListing(listing);
   };
 
   return (
     <div className="min-h-screen pt-24 pb-20">
+      {selectedListing && (
+        <OrderModal
+          item={{ id: selectedListing.id, title: selectedListing.name, seller: selectedListing.vendor, priceUsd: selectedListing.priceUsd }}
+          walletBalance={walletBalance}
+          isAuthenticated={isAuthenticated}
+          isPending={purchase.isPending}
+          confirmLabel="Buy Now"
+          onConfirm={() => purchase.mutate(selectedListing)}
+          onClose={() => setSelectedListing(null)}
+        />
+      )}
       <div className="fixed top-10 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
       <div className="container mx-auto px-4">
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-6">

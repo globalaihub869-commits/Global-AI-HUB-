@@ -215,10 +215,11 @@ export default function Gigs() {
     <div className="min-h-screen pt-24 pb-20">
       {selectedGig && (
         <OrderModal
-          gig={selectedGig}
+          item={{ id: selectedGig.id, title: selectedGig.title, seller: selectedGig.seller, priceUsd: selectedGig.priceUsd, deliveryDays: selectedGig.deliveryDays }}
           walletBalance={walletBalance}
           isAuthenticated={isAuthenticated}
           isPending={purchase.isPending}
+          confirmLabel="Place Order"
           onConfirm={() => purchase.mutate(selectedGig)}
           onClose={() => setSelectedGig(null)}
         />

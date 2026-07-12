@@ -3,26 +3,27 @@ import { X, ShoppingCart, AlertTriangle, LogIn, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 
-interface Gig {
+export interface OrderItem {
   id: string;
   title: string;
   seller: string;
   priceUsd: number;
-  deliveryDays: number;
+  deliveryDays?: number;
 }
 
 interface Props {
-  gig: Gig;
+  item: OrderItem;
   walletBalance: number;
   isAuthenticated: boolean;
   isPending: boolean;
+  confirmLabel?: string;
   onConfirm: () => void;
   onClose: () => void;
 }
 
-export default function OrderModal({ gig, walletBalance, isAuthenticated, isPending, onConfirm, onClose }: Props) {
+export default function OrderModal({ item, walletBalance, isAuthenticated, isPending, confirmLabel = "Place Order", onConfirm, onClose }: Props) {
   const [, navigate] = useLocation();
-  const canAfford = walletBalance >= gig.priceUsd;
+  const canAfford = walletBalance >= item.priceUsd;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -34,7 +35,7 @@ export default function OrderModal({ gig, walletBalance, isAuthenticated, isPend
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-4 h-4 text-primary" />
-            <span className="text-sm font-bold text-white">Confirm Order</span>
+            <span className="text-sm font-bold text-white">Confirm Purchase</span>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-white transition-colors">
             <X className="w-5 h-5" />
@@ -42,17 +43,16 @@ export default function OrderModal({ gig, walletBalance, isAuthenticated, isPend
         </div>
 
         <div className="p-5">
-          {/* Gig summary */}
           <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4 mb-4">
-            <p className="text-xs text-muted-foreground mb-1">Ordering</p>
-            <p className="text-sm font-semibold text-white leading-snug mb-2">{gig.title}</p>
+            <p className="text-xs text-muted-foreground mb-1">Purchasing</p>
+            <p className="text-sm font-semibold text-white leading-snug mb-2">{item.title}</p>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>by {gig.seller}</span>
-              <span>{gig.deliveryDays}-day delivery</span>
+              <span>by {item.seller}</span>
+              {item.deliveryDays !== undefined && <span>{item.deliveryDays}-day delivery</span>}
             </div>
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/8">
               <span className="text-xs text-muted-foreground">Total</span>
-              <span className="text-lg font-display font-bold text-white">${gig.priceUsd}</span>
+              <span className="text-lg font-display font-bold text-white">${item.priceUsd}</span>
             </div>
           </div>
 
@@ -62,7 +62,7 @@ export default function OrderModal({ gig, walletBalance, isAuthenticated, isPend
               <div className="flex items-start gap-2.5 rounded-xl border border-yellow-400/30 bg-yellow-400/8 px-4 py-3 mb-4">
                 <LogIn className="w-4 h-4 text-yellow-300 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-yellow-200 leading-relaxed">
-                  You need to be signed in to place an order.
+                  You need to be signed in to complete this purchase.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -87,7 +87,7 @@ export default function OrderModal({ gig, walletBalance, isAuthenticated, isPend
                 <div>
                   <p className="text-xs text-red-200 leading-relaxed font-semibold mb-0.5">Insufficient balance</p>
                   <p className="text-xs text-red-200/80 leading-relaxed">
-                    Your wallet has <span className="font-semibold text-white">${walletBalance.toFixed(2)}</span> — this gig costs <span className="font-semibold text-white">${gig.priceUsd}</span>.
+                    Your wallet has <span className="font-semibold text-white">${walletBalance.toFixed(2)}</span> — this costs <span className="font-semibold text-white">${item.priceUsd}</span>.
                     Upgrade your plan to get full wallet access.
                   </p>
                 </div>
@@ -110,8 +110,8 @@ export default function OrderModal({ gig, walletBalance, isAuthenticated, isPend
           {isAuthenticated && canAfford && (
             <>
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 px-1">
-                <span>Wallet balance after order</span>
-                <span className="text-white font-semibold">${(walletBalance - gig.priceUsd).toFixed(2)}</span>
+                <span>Wallet balance after purchase</span>
+                <span className="text-white font-semibold">${(walletBalance - item.priceUsd).toFixed(2)}</span>
               </div>
               <div className="flex gap-2">
                 <Button onClick={onClose} variant="outline" className="flex-1 rounded-full border-white/15 text-sm">
@@ -129,7 +129,7 @@ export default function OrderModal({ gig, walletBalance, isAuthenticated, isPend
                     </span>
                   ) : (
                     <span className="flex items-center gap-1.5">
-                      <ShoppingCart className="w-3.5 h-3.5" /> Place Order
+                      <ShoppingCart className="w-3.5 h-3.5" /> {confirmLabel}
                     </span>
                   )}
                 </Button>
