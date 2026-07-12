@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Sparkles, Crown, Rocket, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -6,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth, type PlanTier } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import BinancePayModal from "@/components/billing/BinancePayModal";
 import FlashSaleCountdown from "@/components/pricing/FlashSaleCountdown";
+
+const BINANCE_PAY_URL = "https://pay.binance.com/en/checkout/TD2FXjtp4DL1r33Zh3buVGLLgaDi4Xr8LS";
 
 interface PlanCard {
   id: PlanTier;
@@ -70,7 +70,6 @@ export default function Pricing() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const [payingPlan, setPayingPlan] = useState<PlanCard | null>(null);
 
   const handleSelect = (plan: PlanCard) => {
     if (plan.id === "free") return;
@@ -83,7 +82,7 @@ export default function Pricing() {
       toast({ title: "Already active", description: `You're already on the ${plan.name} plan or higher.` });
       return;
     }
-    setPayingPlan(plan);
+    window.open(BINANCE_PAY_URL, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -173,13 +172,6 @@ export default function Pricing() {
         })}
       </div>
 
-      {payingPlan && (
-        <BinancePayModal
-          plan={payingPlan.id}
-          planName={payingPlan.name}
-          onClose={() => setPayingPlan(null)}
-        />
-      )}
     </div>
   );
 }
