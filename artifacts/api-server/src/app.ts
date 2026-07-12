@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type ErrorRequestHandler } from "express";
 import cors from "cors";
 import session from "express-session";
 import pinoHttp from "pino-http";
@@ -80,12 +80,29 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
 );
 
 app.use("/api", router);
+
+// Catch-all JSON error handler — must have 4 params so Express recognises it
+// as an error handler. Converts any unhandled throw (including async route
+// errors like DB "relation does not exist") into a consistent JSON response
+// instead of Express's default HTML error page.
+const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  const status =
+    (err as { status?: number }).status ??
+    (err as { statusCode?: number }).statusCode ??
+    500;
+  const message =
+    err instanceof Error ? err.message : "Internal server error";
+  logger.error({ err, status }, "Unhandled route error");
+  res.status(status).json({ error: "SERVER_ERROR", message });
+};
+
+app.use(errorHandler);
 
 export default app;
