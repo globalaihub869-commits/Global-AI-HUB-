@@ -4,11 +4,15 @@ import {
   verifyUser,
   getUserById,
   updateUserProfile,
+  findOrCreateGoogleUser,
   toPublic,
   type ProfileType,
 } from "../lib/users.js";
 import { recordFailedLogin } from "../lib/threat-store.js";
 import { redeemReferral, getReferralOwnerId } from "../lib/referral-store.js";
+
+const GOOGLE_CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID ?? "";
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 
 declare module "express-session" {
   interface SessionData {
@@ -94,6 +98,62 @@ router.get("/auth/me", async (req, res) => {
     return;
   }
   res.json({ user: toPublic(user) });
+});
+
+router.get("/auth/google/callback", async (req, res) => {
+  const { code, error: oauthError } = req.query as { code?: string; error?: string };
+  const frontendBase = process.env.REPLIT_DOMAINS
+    ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
+    : "http://localhost:80";
+
+  if (oauthError || !code) {
+    res.redirect(`${frontendBase}/login?error=google_denied`);
+    return;
+  }
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    res.redirect(`${frontendBase}/login?error=google_not_configured`);
+    return;
+  }
+
+  try {
+    const redirectUri = `${frontendBase}/api/auth/google/callback`;
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }),
+    });
+    const tokenData = await tokenRes.json() as { access_token?: string; error?: string };
+    if (!tokenData.access_token) {
+      res.redirect(`${frontendBase}/login?error=google_token_failed`);
+      return;
+    }
+
+    const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const userInfo = await userInfoRes.json() as { email?: string; name?: string; sub?: string };
+    if (!userInfo.email) {
+      res.redirect(`${frontendBase}/login?error=google_no_email`);
+      return;
+    }
+
+    const user = await findOrCreateGoogleUser(userInfo.email, userInfo.name ?? "");
+    req.session.userId = user.id;
+    await new Promise<void>((resolve, reject) =>
+      req.session.save((err) => (err ? reject(err) : resolve())),
+    );
+
+    res.redirect(`${frontendBase}/`);
+  } catch {
+    res.redirect(`${frontendBase}/login?error=google_failed`);
+  }
 });
 
 router.post("/auth/logout", (req, res) => {

@@ -148,6 +148,40 @@ export async function upgradeUserPlan(
   return row ? rowToUser(row) : null;
 }
 
+export async function findOrCreateGoogleUser(
+  email: string,
+  name: string,
+): Promise<User> {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const [existing] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, normalizedEmail))
+    .limit(1);
+  if (existing) return rowToUser(existing);
+
+  const role: Role =
+    normalizedEmail === ADMIN_EMAIL || normalizedEmail.startsWith("admin")
+      ? "admin"
+      : "user";
+
+  const [row] = await db
+    .insert(usersTable)
+    .values({
+      id: randomUUID(),
+      email: normalizedEmail,
+      name: name.trim() || normalizedEmail.split("@")[0],
+      passwordHash: "",
+      role,
+      plan: "free",
+      walletBalanceUsd: TRIAL_WALLET_STARTING_BALANCE,
+    })
+    .returning();
+
+  return rowToUser(row!);
+}
+
 export async function debitWallet(
   id: string,
   amountUsd: number,
