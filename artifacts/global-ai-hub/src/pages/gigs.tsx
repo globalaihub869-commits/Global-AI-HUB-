@@ -16,6 +16,7 @@ import EscrowBadge from "@/components/marketplace/EscrowBadge";
 import StarRating from "@/components/marketplace/StarRating";
 import GigReviewRow from "@/components/marketplace/GigReviewRow";
 import ShareForPointsButton from "@/components/marketplace/ShareForPointsButton";
+import OrderModal from "@/components/gigs/OrderModal";
 
 const CATEGORIES = ["All", "ChatGPT Prompts", "Midjourney/Sora", "Business", "Coding"] as const;
 
@@ -163,13 +164,16 @@ function GigCard({ gig, idx, onBuy, pending }: { gig: Gig; idx: number; onBuy: (
 }
 
 export default function Gigs() {
-  const { isAuthenticated, setUser } = useAuth();
+  const { isAuthenticated, user, setUser } = useAuth();
   const { toast } = useToast();
   const earnTokens = useEarnTokens();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("All");
+  const [selectedGig, setSelectedGig] = useState<Gig | null>(null);
+
+  const walletBalance: number = (user as any)?.walletBalanceUsd ?? 0;
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["gigsList", search, category],
@@ -182,18 +186,20 @@ export default function Gigs() {
   const purchase = useMutation({
     mutationFn: (gig: Gig) => apiFetch(`/gigs/${gig.id}/purchase`, { method: "POST" }),
     onSuccess: (res: any, gig) => {
-      toast({ title: "Order placed!", description: `${gig.title} is now in escrow — funds locked until delivery.` });
+      setSelectedGig(null);
+      toast({ title: "🎉 Order placed!", description: `${gig.title} is now in escrow — funds locked until delivery.` });
       if (res.user) setUser(res.user);
       earnTokens("tool_visited", gig.title);
       queryClient.invalidateQueries({ queryKey: ["gigsList"] });
     },
     onError: (err: any) => {
+      setSelectedGig(null);
       if (err.code === "INSUFFICIENT_BALANCE") {
-        toast({ title: "Insufficient trial wallet balance", description: "Top up your wallet to order this gig.", variant: "destructive" });
+        toast({ title: "Insufficient balance", description: "Upgrade your plan to unlock full wallet access.", variant: "destructive" });
       } else if (err.status === 401) {
         toast({ title: "Sign in required", description: "Log in to order gigs.", variant: "destructive" });
       } else {
-        toast({ title: "Order failed", description: "Please try again.", variant: "destructive" });
+        toast({ title: "Order failed", description: err.message ?? "Please try again.", variant: "destructive" });
       }
     },
   });
@@ -202,15 +208,21 @@ export default function Gigs() {
   const clearAll = () => { setSearch(""); setCategory("All"); };
 
   const handleBuy = (gig: Gig) => {
-    if (!isAuthenticated) {
-      toast({ title: "Sign in required", description: "Log in to order gigs.", variant: "destructive" });
-      return;
-    }
-    purchase.mutate(gig);
+    setSelectedGig(gig);
   };
 
   return (
     <div className="min-h-screen pt-24 pb-20">
+      {selectedGig && (
+        <OrderModal
+          gig={selectedGig}
+          walletBalance={walletBalance}
+          isAuthenticated={isAuthenticated}
+          isPending={purchase.isPending}
+          onConfirm={() => purchase.mutate(selectedGig)}
+          onClose={() => setSelectedGig(null)}
+        />
+      )}
       <div className="fixed top-10 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-secondary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
       <div className="container mx-auto px-4">
         <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
