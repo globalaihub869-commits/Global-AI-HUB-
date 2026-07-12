@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldAlert, Activity, Users, Globe2, Gauge, LifeBuoy, Clock, CheckCircle2, AlertTriangle, CircleDot,
   BrainCircuit, Bot, Ticket as TicketIcon, Code2, Blocks, Lock, Tag, ShieldBan, Crown, TrendingUp, Ban,
-  ScrollText, Unlock, BellRing, Send, Archive, Star,
+  ScrollText, Unlock, BellRing, Send, Archive, Star, Wallet, ExternalLink, XCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +93,18 @@ const QUICK_REPLY_TEMPLATES = [
   "I've escalated your ticket to our senior technical team. You'll receive a full update within 24 hours. 🎫",
   "This is a known issue that our engineering team is working on. A fix will be deployed within the next 48 hours — we apologise for the inconvenience.",
 ];
+
+interface PendingPayment {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  plan: string;
+  amountUsdt: number;
+  txId: string;
+  status: "pending" | "approved" | "rejected";
+  submittedAt: string;
+}
 
 interface ExecutiveSummary {
   totalConversions: number;
@@ -196,6 +208,8 @@ export default function AdminDashboard() {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replyLoading, setReplyLoading] = useState(false);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
+  const [processingPaymentId, setProcessingPaymentId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -282,6 +296,43 @@ export default function AdminDashboard() {
     return () => source.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const load = () => {
+      apiFetch("/billing/pending-payments")
+        .then((data: { submissions: PendingPayment[] }) => setPendingPayments(data.submissions ?? []))
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleApprovePayment = async (id: string) => {
+    setProcessingPaymentId(id);
+    try {
+      await apiFetch(`/billing/approve-payment/${id}`, { method: "POST" });
+      setPendingPayments((prev) => prev.map((p) => p.id === id ? { ...p, status: "approved" } : p));
+      toast({ title: "✅ Payment approved", description: "User plan has been activated." });
+    } catch (e) {
+      toast({ title: "Approval failed", description: e instanceof Error ? e.message : "Error", variant: "destructive" });
+    } finally {
+      setProcessingPaymentId(null);
+    }
+  };
+
+  const handleRejectPayment = async (id: string) => {
+    setProcessingPaymentId(id);
+    try {
+      await apiFetch(`/billing/reject-payment/${id}`, { method: "POST" });
+      setPendingPayments((prev) => prev.map((p) => p.id === id ? { ...p, status: "rejected" } : p));
+      toast({ title: "Payment rejected", description: "Submission marked as rejected." });
+    } catch (e) {
+      toast({ title: "Rejection failed", description: e instanceof Error ? e.message : "Error", variant: "destructive" });
+    } finally {
+      setProcessingPaymentId(null);
+    }
+  };
 
   useEffect(() => {
     const loadAdminTickets = () => {
@@ -410,6 +461,109 @@ export default function AdminDashboard() {
                     <span>{c.userEmail} upgraded to <span className="text-yellow-300 capitalize">{c.plan}</span></span>
                     <span>${c.amountUsdt} · {new Date(c.createdAt).toLocaleTimeString()}</span>
                   </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pending Payments */}
+      <div className="mb-8" data-testid="section-pending-payments">
+        <Card className="border-white/8 bg-[hsl(240,15%,8%)]">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <Wallet className="w-4 h-4 text-yellow-400" />
+                Payment Submissions
+              </div>
+              {pendingPayments.filter((p) => p.status === "pending").length > 0 && (
+                <Badge className="bg-yellow-400/15 text-yellow-300 border border-yellow-400/30 text-[11px]">
+                  {pendingPayments.filter((p) => p.status === "pending").length} Pending
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {pendingPayments.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No payment submissions yet.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {pendingPayments.map((payment) => (
+                  <motion.div
+                    key={payment.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`rounded-xl border px-4 py-3 ${
+                      payment.status === "pending"
+                        ? "border-yellow-400/30 bg-yellow-400/5"
+                        : payment.status === "approved"
+                        ? "border-emerald-400/25 bg-emerald-400/5"
+                        : "border-red-400/25 bg-red-400/5"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="text-sm font-semibold text-white">{payment.userEmail}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            payment.plan === "enterprise"
+                              ? "text-purple-300 border-purple-400/30 bg-purple-400/10"
+                              : "text-yellow-300 border-yellow-400/30 bg-yellow-400/10"
+                          }`}>
+                            {payment.plan.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-muted-foreground">${payment.amountUsdt} USDT</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[11px] text-muted-foreground">TxID:</span>
+                          <code className="text-[11px] text-cyan-300 font-mono truncate max-w-[220px]">{payment.txId}</code>
+                          <a
+                            href={`https://tronscan.org/#/transaction/${payment.txId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-cyan-300 transition-colors flex-shrink-0"
+                            title="View on TronScan"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground/60">{new Date(payment.submittedAt).toLocaleString()}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {payment.status === "pending" ? (
+                          <>
+                            <button
+                              onClick={() => handleApprovePayment(payment.id)}
+                              disabled={processingPaymentId === payment.id}
+                              data-testid={`btn-approve-payment-${payment.id}`}
+                              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-emerald-400/40 text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/20 disabled:opacity-50 transition-colors"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectPayment(payment.id)}
+                              disabled={processingPaymentId === payment.id}
+                              data-testid={`btn-reject-payment-${payment.id}`}
+                              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-red-400/30 text-red-300 bg-red-400/10 hover:bg-red-400/20 disabled:opacity-50 transition-colors"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              Reject
+                            </button>
+                          </>
+                        ) : (
+                          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                            payment.status === "approved"
+                              ? "text-emerald-300 border-emerald-400/30 bg-emerald-400/10"
+                              : "text-red-300 border-red-400/30 bg-red-400/10"
+                          }`}>
+                            {payment.status === "approved" ? "✓ Approved" : "✗ Rejected"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
             )}

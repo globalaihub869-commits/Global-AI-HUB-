@@ -179,6 +179,7 @@ export default function Pricing() {
 
       {payingPlan && (
         <CryptoPayModal
+          plan={payingPlan.id}
           planName={payingPlan.name}
           amountUsdt={payingPlan.amountUsdt}
           onClose={() => setPayingPlan(null)}
