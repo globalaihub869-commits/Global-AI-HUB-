@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Sparkles, Crown, Rocket, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -6,14 +7,14 @@ import { useAuth, type PlanTier } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import FlashSaleCountdown from "@/components/pricing/FlashSaleCountdown";
-
-const BINANCE_PAY_URL = "https://pay.binance.com/en/checkout/TD2FXjtp4DL1r33Zh3buVGLLgaDi4Xr8LS";
+import CryptoPayModal from "@/components/billing/CryptoPayModal";
 
 interface PlanCard {
   id: PlanTier;
   name: string;
   icon: typeof Sparkles;
   price: string;
+  amountUsdt: number;
   tagline: string;
   features: string[];
   highlight?: boolean;
@@ -25,6 +26,7 @@ const PLAN_CARDS: PlanCard[] = [
     name: "Free",
     icon: Sparkles,
     price: "$0",
+    amountUsdt: 0,
     tagline: "Explore the hub with essential tools",
     features: [
       "Browse AI tool directory",
@@ -38,6 +40,7 @@ const PLAN_CARDS: PlanCard[] = [
     name: "Pro",
     icon: Crown,
     price: "$19",
+    amountUsdt: 19,
     tagline: "For power users who live in the AI ecosystem",
     features: [
       "Everything in Free",
@@ -54,6 +57,7 @@ const PLAN_CARDS: PlanCard[] = [
     name: "Enterprise",
     icon: Rocket,
     price: "$99",
+    amountUsdt: 99,
     tagline: "For teams and organizations scaling with AI",
     features: [
       "Everything in Pro",
@@ -70,6 +74,7 @@ export default function Pricing() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [payingPlan, setPayingPlan] = useState<PlanCard | null>(null);
 
   const handleSelect = (plan: PlanCard) => {
     if (plan.id === "free") return;
@@ -82,7 +87,7 @@ export default function Pricing() {
       toast({ title: "Already active", description: `You're already on the ${plan.name} plan or higher.` });
       return;
     }
-    window.open(BINANCE_PAY_URL, "_blank", "noopener,noreferrer");
+    setPayingPlan(plan);
   };
 
   return (
@@ -95,10 +100,10 @@ export default function Pricing() {
           Choose Your <span className="text-primary [text-shadow:0_0_20px_rgba(168,85,247,0.5)]">Power Level</span>
         </h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          Pay instantly with USDT via our secure crypto escrow gateway. No cards, no borders, no delays.
+          Pay instantly with USDT via TRC20. No cards, no borders, no delays.
         </p>
         <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold border border-emerald-400/30 text-emerald-400 bg-emerald-400/10 rounded-full px-2.5 py-1 mt-4">
-          <ShieldCheck className="w-3.5 h-3.5" /> Secured by Binance Pay-style escrow
+          <ShieldCheck className="w-3.5 h-3.5" /> USDT · TRC20 Network
         </div>
       </div>
 
@@ -163,7 +168,7 @@ export default function Pricing() {
                         : "bg-primary hover:bg-primary/90"
                     }`}
                   >
-                    {isCurrent ? "Current Plan" : plan.id === "free" ? "Included by Default" : `Pay with USDT`}
+                    {isCurrent ? "Current Plan" : plan.id === "free" ? "Included by Default" : "Pay with USDT"}
                   </Button>
                 </CardContent>
               </Card>
@@ -172,6 +177,13 @@ export default function Pricing() {
         })}
       </div>
 
+      {payingPlan && (
+        <CryptoPayModal
+          planName={payingPlan.name}
+          amountUsdt={payingPlan.amountUsdt}
+          onClose={() => setPayingPlan(null)}
+        />
+      )}
     </div>
   );
 }
