@@ -5,6 +5,7 @@ import {
   BrainCircuit, Bot, Ticket as TicketIcon, Code2, Blocks, Lock, Tag, ShieldBan, Crown, TrendingUp, Ban,
   ScrollText, Unlock, BellRing, Send, Archive, Star, Wallet, ExternalLink, XCircle,
   Rss, Mail, Hourglass, AlertCircle, Building2, MapPin, RefreshCw,
+  Briefcase, Heart, Share2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +86,26 @@ interface AdminTicketStats {
   archived: number;
   vip: number;
   total: number;
+}
+
+interface GigsActivity {
+  stats: {
+    totalGigs: number;
+    totalReviews: number;
+    totalLikes: number;
+    totalShares: number;
+  };
+  log: {
+    id: string;
+    title: string;
+    seller: string;
+    category: string;
+    priceUsd: number;
+    rating: number;
+    reviewCount: number;
+    likes: number;
+    shares: number;
+  }[];
 }
 
 const QUICK_REPLY_TEMPLATES = [
@@ -216,6 +237,8 @@ export default function AdminDashboard() {
     log: { id: string; title: string; company: string; location: string; postedAt: string; hrEmail: string | null; outreachStatus: string | null; tags: string[] }[];
   } | null>(null);
   const [jobLogRefreshing, setJobLogRefreshing] = useState(false);
+  const [gigsActivity, setGigsActivity] = useState<GigsActivity | null>(null);
+  const [gigsLogRefreshing, setGigsLogRefreshing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -233,6 +256,15 @@ export default function AdminDashboard() {
     };
     load();
     const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const load = () => {
+      apiFetch("/gigs/activity-log").then(setGigsActivity).catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -1049,6 +1081,80 @@ export default function AdminDashboard() {
                     );
                   })}
                 </AnimatePresence>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gigs Activity Log */}
+      <div className="mb-8" data-testid="section-gigs-activity-log">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
+            <Briefcase className="w-4 h-4 text-secondary" /> Gigs Activity
+          </h2>
+          <button
+            onClick={() => {
+              setGigsLogRefreshing(true);
+              apiFetch("/gigs/activity-log").then(setGigsActivity).catch(() => {}).finally(() => setGigsLogRefreshing(false));
+            }}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+            data-testid="btn-refresh-gigs-log"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${gigsLogRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {[
+            { label: "Total Gigs", value: gigsActivity?.stats.totalGigs ?? 0, icon: Briefcase, color: "text-secondary" },
+            { label: "Total Reviews", value: gigsActivity?.stats.totalReviews ?? 0, icon: Star, color: "text-yellow-400" },
+            { label: "Total Likes", value: gigsActivity?.stats.totalLikes ?? 0, icon: Heart, color: "text-pink-400" },
+            { label: "Total Shares", value: gigsActivity?.stats.totalShares ?? 0, icon: Share2, color: "text-cyan-400" },
+          ].map((stat) => (
+            <Card key={stat.label} className="bg-[hsl(240,15%,8%)] border-white/8" data-testid={`stat-gigs-${stat.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
+              <CardContent className="p-4">
+                <stat.icon className={`w-4 h-4 mb-2 ${stat.color}`} />
+                <div className="text-2xl font-display font-bold text-white">{stat.value}</div>
+                <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-tight">{stat.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+          <CardHeader className="pb-2 pt-4 px-5">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <TrendingUp className="w-4 h-4 text-secondary" />
+              Gig listings with social engagement — likes &amp; shares from the DB
+            </div>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            {!gigsActivity || gigsActivity.log.length === 0 ? (
+              <div className="py-12 flex flex-col items-center gap-3 text-center px-5">
+                <Briefcase className="w-8 h-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground/60">No gigs data yet.</p>
+              </div>
+            ) : (
+              <div className="max-h-[360px] overflow-y-auto divide-y divide-white/[0.04]">
+                {gigsActivity.log.map((gig) => (
+                  <div key={gig.id} className="flex items-center gap-4 px-5 py-3 hover:bg-white/[0.02] transition-colors" data-testid={`gig-log-row-${gig.id}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className="text-sm font-medium text-white truncate">{gig.title}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary/10 border border-secondary/20 text-secondary/80">{gig.category}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                        <span>{gig.seller}</span>
+                        <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-400" />{gig.rating} ({gig.reviewCount})</span>
+                        <span className="flex items-center gap-1"><Heart className="w-3 h-3 text-pink-400" />{gig.likes}</span>
+                        <span className="flex items-center gap-1"><Share2 className="w-3 h-3 text-cyan-400" />{gig.shares}</span>
+                      </div>
+                    </div>
+                    <span className="text-sm font-display font-bold text-white flex-shrink-0">${gig.priceUsd}</span>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

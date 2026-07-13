@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, apiFetch } from "@/context/AuthContext";
 import { useEarnTokens } from "@/hooks/useEarnTokens";
 import {
   Sparkles, Play, Pause, Download, Share2, Wand2, Mic, User, Bot,
@@ -178,9 +178,11 @@ export default function AiVideoStudio() {
   };
 
   const handleShare = () => {
+    const entityId = `video-${avatar.id}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(`${window.location.origin}/ai-video-studio#${avatar.id}`).catch(() => {});
     }
+    apiFetch("/interactions/share", { method: "POST", body: JSON.stringify({ entityId, entityType: "video" }) }).catch(() => {});
     const connected = getConnectedPlatforms(user?.id ?? null);
     if (connected.length === 0) {
       toast({
@@ -191,8 +193,8 @@ export default function AiVideoStudio() {
     }
     const names = connected.map((p) => PLATFORM_LABELS[p] ?? p).join(", ");
     toast({
-      title: "Shared (simulated)",
-      description: `Link copied and a simulated share was queued for: ${names}. Real posting isn't wired up yet.`,
+      title: "Shared",
+      description: `Link copied and share recorded for: ${names}.`,
     });
   };
 

@@ -17,6 +17,7 @@ import StarRating from "@/components/marketplace/StarRating";
 import GigReviewRow from "@/components/marketplace/GigReviewRow";
 import ShareForPointsButton from "@/components/marketplace/ShareForPointsButton";
 import OrderModal from "@/components/gigs/OrderModal";
+import ToolSocialBar from "@/components/tools/ToolSocialBar";
 
 const CATEGORIES = ["All", "ChatGPT Prompts", "Midjourney/Sora", "Business", "Coding"] as const;
 
@@ -141,8 +142,9 @@ function GigCard({ gig, idx, onBuy, pending }: { gig: Gig; idx: number; onBuy: (
             )}
           </AnimatePresence>
 
-          <div className="mt-3 pt-3 border-t border-white/5">
+          <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between gap-4">
             <ShareForPointsButton gigId={gig.id} gigTitle={gig.title} />
+            <ToolSocialBar toolId={`gig-${gig.id}`} toolName={gig.title} size="sm" entityType="gig" />
           </div>
         </CardContent>
 

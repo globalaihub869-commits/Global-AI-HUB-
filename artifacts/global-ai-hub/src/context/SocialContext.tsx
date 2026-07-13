@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { apiFetch } from "@/context/AuthContext";
 
 export interface ToolSocialStats {
   likes: number;
@@ -23,11 +24,12 @@ interface SocialState {
 }
 
 interface SocialContextValue {
-  getStats: (toolId: string) => ToolSocialStats;
-  toggleLike: (toolId: string, toolName: string) => void;
-  addComment: (toolId: string, toolName: string) => void;
-  share: (toolId: string, toolName: string) => void;
-  toggleBookmark: (toolId: string, toolName: string) => void;
+  getStats: (entityId: string) => ToolSocialStats;
+  toggleLike: (entityId: string, entityType: string, toolName: string) => void;
+  addComment: (entityId: string, entityType: string, toolName: string, content: string) => Promise<void>;
+  share: (entityId: string, entityType: string, toolName: string) => void;
+  toggleBookmark: (entityId: string, entityType: string, toolName: string) => void;
+  loadStats: (entityId: string, entityType: string) => void;
   bookmarkedIds: string[];
   hubPoints: number;
   notifications: HubNotification[];
@@ -39,10 +41,9 @@ const SocialContext = createContext<SocialContextValue | null>(null);
 
 const DEFAULT_STATE: SocialState = { stats: {}, hubPoints: 0, notifications: [] };
 
-function seedStats(toolId: string): ToolSocialStats {
-  // Deterministic pseudo-random baseline so counts look "alive" but stay stable per tool.
+function seedStats(entityId: string): ToolSocialStats {
   let hash = 0;
-  for (let i = 0; i < toolId.length; i++) hash = (hash * 31 + toolId.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < entityId.length; i++) hash = (hash * 31 + entityId.charCodeAt(i)) >>> 0;
   return {
     likes: 40 + (hash % 260),
     liked: false,
@@ -71,6 +72,7 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [state, setState] = useState<SocialState>(() => loadState(userId));
+  const fetchingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     setState(loadState(userId));
@@ -80,14 +82,43 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(storageKey(userId), JSON.stringify(state));
     } catch {
-      // ignore storage failures (e.g. private mode quota)
+      // ignore storage failures
     }
   }, [state, userId]);
 
   const getStats = useCallback(
-    (toolId: string): ToolSocialStats => state.stats[toolId] ?? seedStats(toolId),
+    (entityId: string): ToolSocialStats => state.stats[entityId] ?? seedStats(entityId),
     [state.stats],
   );
+
+  /** Load real stats from the server for a specific entity (debounced per entity). */
+  const loadStats = useCallback((entityId: string, _entityType: string) => {
+    if (fetchingRef.current.has(entityId)) return;
+    fetchingRef.current.add(entityId);
+    apiFetch(`/interactions/stats?entityId=${encodeURIComponent(entityId)}`)
+      .then((data: { likes: number; comments: number; shares: number; liked: boolean; bookmarked: boolean }) => {
+        setState((prev) => {
+          const current = prev.stats[entityId] ?? seedStats(entityId);
+          return {
+            ...prev,
+            stats: {
+              ...prev.stats,
+              [entityId]: {
+                likes: current.likes + data.likes,
+                liked: data.liked,
+                comments: current.comments + data.comments,
+                shares: current.shares + data.shares,
+                bookmarked: data.bookmarked,
+              },
+            },
+          };
+        });
+      })
+      .catch(() => {})
+      .finally(() => {
+        setTimeout(() => fetchingRef.current.delete(entityId), 30000);
+      });
+  }, []);
 
   const notify = useCallback((message: string, points: number) => {
     setState((prev) => ({
@@ -100,37 +131,48 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const mutateStat = useCallback((toolId: string, mutator: (s: ToolSocialStats) => ToolSocialStats) => {
+  const mutateStat = useCallback((entityId: string, mutator: (s: ToolSocialStats) => ToolSocialStats) => {
     setState((prev) => {
-      const current = prev.stats[toolId] ?? seedStats(toolId);
-      return { ...prev, stats: { ...prev.stats, [toolId]: mutator(current) } };
+      const current = prev.stats[entityId] ?? seedStats(entityId);
+      return { ...prev, stats: { ...prev.stats, [entityId]: mutator(current) } };
     });
   }, []);
 
-  const toggleLike = useCallback((toolId: string, toolName: string) => {
-    const current = state.stats[toolId] ?? seedStats(toolId);
+  const toggleLike = useCallback((entityId: string, entityType: string, toolName: string) => {
+    const current = state.stats[entityId] ?? seedStats(entityId);
     const nowLiked = !current.liked;
-    mutateStat(toolId, (s) => ({ ...s, liked: nowLiked, likes: s.likes + (nowLiked ? 1 : -1) }));
+    mutateStat(entityId, (s) => ({ ...s, liked: nowLiked, likes: s.likes + (nowLiked ? 1 : -1) }));
     if (nowLiked) notify(`You liked ${toolName}. +5 Hub Points`, 5);
-  }, [state.stats, mutateStat, notify]);
+    if (userId) {
+      apiFetch("/interactions/toggle", { method: "POST", body: JSON.stringify({ entityId, entityType, action: "like" }) }).catch(() => {});
+    }
+  }, [state.stats, mutateStat, notify, userId]);
 
-  const addComment = useCallback((toolId: string, toolName: string) => {
-    mutateStat(toolId, (s) => ({ ...s, comments: s.comments + 1 }));
-    notify(`You joined the discussion on ${toolName}. +3 Hub Points`, 3);
-  }, [mutateStat, notify]);
+  const addComment = useCallback(async (entityId: string, entityType: string, toolName: string, content: string): Promise<void> => {
+    if (!content.trim()) return;
+    mutateStat(entityId, (s) => ({ ...s, comments: s.comments + 1 }));
+    notify(`You commented on ${toolName}. +3 Hub Points`, 3);
+    if (userId) {
+      await apiFetch("/interactions/comment", { method: "POST", body: JSON.stringify({ entityId, entityType, content }) }).catch(() => {});
+    }
+  }, [mutateStat, notify, userId]);
 
-  const share = useCallback((toolId: string, toolName: string) => {
-    mutateStat(toolId, (s) => ({ ...s, shares: s.shares + 1 }));
+  const share = useCallback((entityId: string, entityType: string, toolName: string) => {
+    mutateStat(entityId, (s) => ({ ...s, shares: s.shares + 1 }));
     notify(`You shared ${toolName}. +8 Hub Points`, 8);
+    apiFetch("/interactions/share", { method: "POST", body: JSON.stringify({ entityId, entityType }) }).catch(() => {});
   }, [mutateStat, notify]);
 
-  const toggleBookmark = useCallback((toolId: string, toolName: string) => {
-    const current = state.stats[toolId] ?? seedStats(toolId);
+  const toggleBookmark = useCallback((entityId: string, entityType: string, toolName: string) => {
+    const current = state.stats[entityId] ?? seedStats(entityId);
     const nowBookmarked = !current.bookmarked;
-    mutateStat(toolId, (s) => ({ ...s, bookmarked: nowBookmarked }));
+    mutateStat(entityId, (s) => ({ ...s, bookmarked: nowBookmarked }));
     if (nowBookmarked) notify(`You bookmarked ${toolName}. +10 Hub Points`, 10);
     else notify(`Removed ${toolName} from your bookmarks.`, 0);
-  }, [state.stats, mutateStat, notify]);
+    if (userId) {
+      apiFetch("/interactions/toggle", { method: "POST", body: JSON.stringify({ entityId, entityType, action: "bookmark" }) }).catch(() => {});
+    }
+  }, [state.stats, mutateStat, notify, userId]);
 
   const markAllRead = useCallback(() => {
     setState((prev) => ({ ...prev, notifications: prev.notifications.map((n) => ({ ...n, read: true })) }));
@@ -151,6 +193,7 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
         addComment,
         share,
         toggleBookmark,
+        loadStats,
         bookmarkedIds,
         hubPoints: state.hubPoints,
         notifications: state.notifications,

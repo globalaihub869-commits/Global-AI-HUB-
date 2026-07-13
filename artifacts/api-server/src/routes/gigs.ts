@@ -2,6 +2,9 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import { getUserById, toPublic } from "../lib/users.js";
 import { listGigs, getGig, purchaseGig, addGigReview } from "../lib/gigs-store.js";
 import { recordActivity } from "../lib/social-store.js";
+import { db } from "@workspace/db";
+import { interactionsTable } from "@workspace/db";
+import { eq, and, count } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -81,6 +84,55 @@ router.post("/gigs/:id/share", requireAuth, (req, res) => {
   recordActivity("like", user.name, `${gig.title} (shared)`);
   req.log.info({ userId: user.id, gigId: id }, "gig shared for hub points");
   res.status(200).json({ pointsAwarded: 5 });
+});
+
+router.get("/gigs/activity-log", async (_req: Request, res: Response): Promise<void> => {
+  const allGigs = listGigs({});
+
+  type AggRow = { entityId: string; cnt: number };
+
+  const shareRows: AggRow[] = await db
+    .select({ entityId: interactionsTable.entityId, cnt: count() })
+    .from(interactionsTable)
+    .where(and(eq(interactionsTable.entityType, "gig"), eq(interactionsTable.action, "share")))
+    .groupBy(interactionsTable.entityId)
+    .catch((): AggRow[] => []);
+
+  const likeRows: AggRow[] = await db
+    .select({ entityId: interactionsTable.entityId, cnt: count() })
+    .from(interactionsTable)
+    .where(and(eq(interactionsTable.entityType, "gig"), eq(interactionsTable.action, "like")))
+    .groupBy(interactionsTable.entityId)
+    .catch((): AggRow[] => []);
+
+  const shareMap = Object.fromEntries(shareRows.map((r) => [r.entityId, Number(r.cnt)]));
+  const likeMap = Object.fromEntries(likeRows.map((r) => [r.entityId, Number(r.cnt)]));
+
+  const totalReviews = allGigs.reduce((s, g) => s + g.reviewCount, 0);
+  const totalShares = shareRows.reduce((s, r) => s + Number(r.cnt), 0);
+  const totalLikes = likeRows.reduce((s, r) => s + Number(r.cnt), 0);
+
+  const log = allGigs.map((g) => ({
+    id: g.id,
+    title: g.title,
+    seller: g.seller,
+    category: g.category,
+    priceUsd: g.priceUsd,
+    rating: g.rating,
+    reviewCount: g.reviewCount,
+    likes: likeMap[g.id] ?? 0,
+    shares: shareMap[g.id] ?? 0,
+  }));
+
+  res.json({
+    stats: {
+      totalGigs: allGigs.length,
+      totalReviews,
+      totalLikes,
+      totalShares,
+    },
+    log,
+  });
 });
 
 export default router;
