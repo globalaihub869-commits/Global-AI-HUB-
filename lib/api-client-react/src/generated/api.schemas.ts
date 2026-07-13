@@ -383,6 +383,31 @@ export type PostJob201 = {
   job: Job;
 };
 
+export type GetJobsActivityLog200Stats = {
+  total?: number;
+  scraped?: number;
+  withEmail?: number;
+  sent?: number;
+  pending?: number;
+  failed?: number;
+};
+
+export type GetJobsActivityLog200LogItem = {
+  id?: string;
+  title?: string;
+  company?: string;
+  location?: string;
+  postedAt?: string;
+  hrEmail?: string | null;
+  outreachStatus?: string | null;
+  tags?: string[];
+};
+
+export type GetJobsActivityLog200 = {
+  stats?: GetJobsActivityLog200Stats;
+  log?: GetJobsActivityLog200LogItem[];
+};
+
 export type SendJobTestEmail200 = {
   success?: boolean;
   message?: string;

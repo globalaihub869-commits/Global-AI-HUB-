@@ -26,6 +26,7 @@ import type {
   ConversationMessageInput,
   EarnTokensInput,
   ErrorResponse,
+  GetJobsActivityLog200,
   HealthStatus,
   JobApplicationInput,
   JobInput,
@@ -638,6 +639,83 @@ export const usePostJob = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getPostJobMutationOptions(options));
     }
+
+export const getGetJobsActivityLogUrl = () => {
+
+
+
+
+  return `/api/jobs/activity-log`
+}
+
+/**
+ * @summary Get scraped jobs activity log with outreach stats for admin dashboard
+ */
+export const getJobsActivityLog = async ( options?: RequestInit): Promise<GetJobsActivityLog200> => {
+
+  return customFetch<GetJobsActivityLog200>(getGetJobsActivityLogUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetJobsActivityLogQueryKey = () => {
+    return [
+    `/api/jobs/activity-log`
+    ] as const;
+    }
+
+
+export const getGetJobsActivityLogQueryOptions = <TData = Awaited<ReturnType<typeof getJobsActivityLog>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getJobsActivityLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetJobsActivityLogQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobsActivityLog>>> = ({ signal }) => getJobsActivityLog({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getJobsActivityLog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetJobsActivityLogQueryResult = NonNullable<Awaited<ReturnType<typeof getJobsActivityLog>>>
+export type GetJobsActivityLogQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get scraped jobs activity log with outreach stats for admin dashboard
+ */
+
+export function useGetJobsActivityLog<TData = Awaited<ReturnType<typeof getJobsActivityLog>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getJobsActivityLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetJobsActivityLogQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getSendJobTestEmailUrl = () => {
 

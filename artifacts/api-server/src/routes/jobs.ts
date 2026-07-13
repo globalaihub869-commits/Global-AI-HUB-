@@ -145,6 +145,36 @@ router.post("/jobs/:id/apply", (req: Request, res: Response): void => {
   res.status(201).json({ success: true, applicationId: application.id });
 });
 
+router.get("/jobs/activity-log", (req: Request, res: Response): void => {
+  const all = jobStore.jobs;
+  const scraped = all.filter((j) => j.source === "scraped");
+
+  const stats = {
+    total: all.length,
+    scraped: scraped.length,
+    withEmail: scraped.filter((j) => j.hrEmail).length,
+    sent: scraped.filter((j) => j.outreachStatus === "sent").length,
+    pending: scraped.filter((j) => j.outreachStatus === "pending").length,
+    failed: scraped.filter((j) => j.outreachStatus === "failed").length,
+  };
+
+  const log = scraped
+    .slice()
+    .sort((a, b) => b.postedAt.localeCompare(a.postedAt))
+    .map((j) => ({
+      id: j.id,
+      title: j.title,
+      company: j.company,
+      location: j.location,
+      postedAt: j.postedAt,
+      hrEmail: j.hrEmail ?? null,
+      outreachStatus: j.outreachStatus ?? null,
+      tags: j.tags,
+    }));
+
+  res.json({ stats, log });
+});
+
 router.post("/jobs/test-email", async (req: Request, res: Response): Promise<void> => {
   const { to } = req.body as { to?: string };
   if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {

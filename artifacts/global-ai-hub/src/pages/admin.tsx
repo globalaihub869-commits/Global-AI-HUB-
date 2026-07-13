@@ -4,6 +4,7 @@ import {
   ShieldAlert, Activity, Users, Globe2, Gauge, LifeBuoy, Clock, CheckCircle2, AlertTriangle, CircleDot,
   BrainCircuit, Bot, Ticket as TicketIcon, Code2, Blocks, Lock, Tag, ShieldBan, Crown, TrendingUp, Ban,
   ScrollText, Unlock, BellRing, Send, Archive, Star, Wallet, ExternalLink, XCircle,
+  Rss, Mail, Hourglass, AlertCircle, Building2, MapPin, RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -210,6 +211,11 @@ export default function AdminDashboard() {
   const [replyLoading, setReplyLoading] = useState(false);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [processingPaymentId, setProcessingPaymentId] = useState<string | null>(null);
+  const [jobActivityLog, setJobActivityLog] = useState<{
+    stats: { total: number; scraped: number; withEmail: number; sent: number; pending: number; failed: number };
+    log: { id: string; title: string; company: string; location: string; postedAt: string; hrEmail: string | null; outreachStatus: string | null; tags: string[] }[];
+  } | null>(null);
+  const [jobLogRefreshing, setJobLogRefreshing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -218,6 +224,15 @@ export default function AdminDashboard() {
     };
     loadActivity();
     const interval = setInterval(loadActivity, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const load = () => {
+      apiFetch("/jobs/activity-log").then(setJobActivityLog).catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -916,6 +931,125 @@ export default function AdminDashboard() {
                   <span className="text-muted-foreground/40 flex-shrink-0">{new Date(w.createdAt).toLocaleTimeString()}</span>
                 </div>
               ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Jobs Activity Log */}
+      <div className="mb-8" data-testid="section-jobs-activity-log">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
+            <Rss className="w-4 h-4 text-cyan-300" /> Jobs Activity Log
+            {jobActivityLog && jobActivityLog.stats.scraped > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-400/15 text-cyan-300 border border-cyan-400/25">
+                {jobActivityLog.stats.scraped} scraped
+              </span>
+            )}
+          </h2>
+          <button
+            onClick={() => {
+              setJobLogRefreshing(true);
+              apiFetch("/jobs/activity-log").then(setJobActivityLog).catch(() => {}).finally(() => setJobLogRefreshing(false));
+            }}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+            data-testid="btn-refresh-job-log"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${jobLogRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+          {[
+            { label: "Total Jobs", value: jobActivityLog?.stats.total ?? 0, icon: Rss, color: "text-cyan-300" },
+            { label: "Scraped", value: jobActivityLog?.stats.scraped ?? 0, icon: Rss, color: "text-primary" },
+            { label: "With HR Email", value: jobActivityLog?.stats.withEmail ?? 0, icon: Mail, color: "text-secondary" },
+            { label: "Email Sent", value: jobActivityLog?.stats.sent ?? 0, icon: CheckCircle2, color: "text-emerald-400" },
+            { label: "Pending", value: jobActivityLog?.stats.pending ?? 0, icon: Hourglass, color: "text-yellow-400" },
+            { label: "Failed", value: jobActivityLog?.stats.failed ?? 0, icon: AlertCircle, color: "text-red-400" },
+          ].map((stat) => (
+            <Card key={stat.label} className="bg-[hsl(240,15%,8%)] border-white/8" data-testid={`stat-jobs-${stat.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
+              <CardContent className="p-4">
+                <stat.icon className={`w-4 h-4 mb-2 ${stat.color}`} />
+                <div className="text-2xl font-display font-bold text-white">{stat.value}</div>
+                <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-tight">{stat.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Log table */}
+        <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+          <CardHeader className="pb-2 pt-4 px-5">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <ScrollText className="w-4 h-4 text-primary" />
+              Scraped job listings &amp; outreach status — auto-refreshes every 10s
+            </div>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            {!jobActivityLog || jobActivityLog.log.length === 0 ? (
+              <div className="py-12 flex flex-col items-center gap-3 text-center px-5">
+                <Rss className="w-8 h-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground/60">No scraped jobs yet. The scheduler runs every 30 minutes.</p>
+              </div>
+            ) : (
+              <div className="max-h-[420px] overflow-y-auto divide-y divide-white/[0.04]">
+                <AnimatePresence initial={false}>
+                  {jobActivityLog.log.map((job, i) => {
+                    const statusConfig =
+                      job.outreachStatus === "sent"
+                        ? { label: "Email Sent", cls: "bg-emerald-400/10 border-emerald-400/30 text-emerald-400", Icon: Mail }
+                        : job.outreachStatus === "failed"
+                        ? { label: "Email Failed", cls: "bg-red-400/10 border-red-400/30 text-red-400", Icon: AlertCircle }
+                        : job.outreachStatus === "pending"
+                        ? { label: "Pending", cls: "bg-yellow-400/10 border-yellow-400/30 text-yellow-400", Icon: Hourglass }
+                        : { label: "No HR Email", cls: "bg-white/5 border-white/10 text-muted-foreground", Icon: CircleDot };
+
+                    return (
+                      <motion.div
+                        key={job.id}
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.18, delay: Math.min(i * 0.02, 0.2) }}
+                        className="flex items-start gap-4 px-5 py-3 hover:bg-white/[0.02] transition-colors"
+                        data-testid={`job-log-row-${job.id}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            <span className="text-sm font-medium text-white truncate">{job.title}</span>
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${statusConfig.cls}`}
+                              data-testid={`job-status-${job.id}`}
+                            >
+                              <statusConfig.Icon className="w-2.5 h-2.5" />
+                              {statusConfig.label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                            <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{job.company}</span>
+                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</span>
+                            {job.hrEmail && (
+                              <span className="flex items-center gap-1 text-cyan-400/70">
+                                <Mail className="w-3 h-3" />{job.hrEmail}
+                              </span>
+                            )}
+                          </div>
+                          {job.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {job.tags.map((t) => (
+                                <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary/80 border border-primary/15">{t}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground/50 flex-shrink-0 pt-0.5">{job.postedAt}</span>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
             )}
           </CardContent>
         </Card>

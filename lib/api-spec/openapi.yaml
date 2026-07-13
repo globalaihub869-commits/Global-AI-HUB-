@@ -203,6 +203,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /jobs/activity-log:
+    get:
+      operationId: getJobsActivityLog
+      tags: [jobs]
+      summary: Get scraped jobs activity log with outreach stats for admin dashboard
+      responses:
+        "200":
+          description: Jobs activity log and stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      scraped:
+                        type: integer
+                      withEmail:
+                        type: integer
+                      sent:
+                        type: integer
+                      pending:
+                        type: integer
+                      failed:
+                        type: integer
+                  log:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type: string
+                        company:
+                          type: string
+                        location:
+                          type: string
+                        postedAt:
+                          type: string
+                        hrEmail:
+                          type: string
+                          nullable: true
+                        outreachStatus:
+                          type: string
+                          nullable: true
+                        tags:
+                          type: array
+                          items:
+                            type: string
+
   /jobs/test-email:
     post:
       operationId: sendJobTestEmail

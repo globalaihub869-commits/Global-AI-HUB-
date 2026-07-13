@@ -211,6 +211,31 @@ export const PostJobResponse = zod.object({
 
 
 /**
+ * @summary Get scraped jobs activity log with outreach stats for admin dashboard
+ */
+export const GetJobsActivityLogResponse = zod.object({
+  "stats": zod.object({
+  "total": zod.number().optional(),
+  "scraped": zod.number().optional(),
+  "withEmail": zod.number().optional(),
+  "sent": zod.number().optional(),
+  "pending": zod.number().optional(),
+  "failed": zod.number().optional()
+}).optional(),
+  "log": zod.array(zod.object({
+  "id": zod.string().optional(),
+  "title": zod.string().optional(),
+  "company": zod.string().optional(),
+  "location": zod.string().optional(),
+  "postedAt": zod.string().optional(),
+  "hrEmail": zod.string().nullish(),
+  "outreachStatus": zod.string().nullish(),
+  "tags": zod.array(zod.string()).optional()
+})).optional()
+})
+
+
+/**
  * @summary Send a test outreach email to verify Gmail integration
  */
 export const SendJobTestEmailBody = zod.object({
