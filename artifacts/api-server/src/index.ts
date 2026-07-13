@@ -3,6 +3,10 @@ import { logger } from "./lib/logger";
 import { startJobScheduler } from "./lib/job-scheduler.js";
 import { verifyMailTransporter } from "./lib/job-outreach.js";
 import { jobStore } from "./routes/jobs.js";
+import { bootstrapSupportStore } from "./lib/support-store.js";
+import { bootstrapThreatStore } from "./lib/threat-store.js";
+import { bootstrapVipEmailer } from "./lib/vip-emailer.js";
+import { bootstrapConversionsStore } from "./lib/conversions-store.js";
 
 const rawPort = process.env["PORT"];
 
@@ -25,6 +29,19 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Bootstrap in-memory stores from DB — runs in parallel so startup stays fast.
+  Promise.all([
+    bootstrapSupportStore(),
+    bootstrapThreatStore(),
+    bootstrapVipEmailer(),
+    bootstrapConversionsStore(),
+  ]).then(() => {
+    logger.info("All persistent stores bootstrapped from DB");
+  }).catch((err) => {
+    logger.error({ err }, "Store bootstrap encountered errors — in-memory stores may be incomplete");
+  });
+
   verifyMailTransporter().then((ok) => {
     if (ok) startJobScheduler(jobStore);
     else logger.warn("Job scheduler NOT started — mail transporter failed verification");

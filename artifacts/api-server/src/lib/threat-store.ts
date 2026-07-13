@@ -1,5 +1,8 @@
 import { randomUUID } from "crypto";
 import { publishLiveEvent } from "./live-events.js";
+import { logger } from "./logger.js";
+import { db, threatEventsTable } from "@workspace/db";
+import { desc } from "drizzle-orm";
 
 export type ThreatType = "brute_force" | "bot_signature" | "rate_abuse" | "exploit_attempt";
 export type ThreatSeverity = "low" | "medium" | "high" | "critical";
@@ -77,10 +80,32 @@ function getActivity(ip: string): IpActivity {
   return activity;
 }
 
+function persistThreatEvent(event: ThreatEvent): void {
+  db.insert(threatEventsTable)
+    .values({
+      id: event.id,
+      type: event.type,
+      severity: event.severity,
+      ip: event.ip,
+      userId: event.userId,
+      method: event.method,
+      path: event.path,
+      action: event.action,
+      reason: event.reason,
+      blocked: event.blocked,
+      preBlockWarning: event.preBlockWarning,
+      attemptNumber: event.attemptNumber,
+      createdAt: event.createdAt,
+    })
+    .onConflictDoNothing()
+    .catch((err) => logger.error({ err }, "Failed to persist threat event"));
+}
+
 function recordThreat(event: Omit<ThreatEvent, "id" | "createdAt">): ThreatEvent {
   const full: ThreatEvent = { ...event, id: randomUUID(), createdAt: Date.now() };
   threatLog.unshift(full);
   if (threatLog.length > MAX_LOG) threatLog.length = MAX_LOG;
+  persistThreatEvent(full);
 
   if (full.blocked) {
     publishLiveEvent({
@@ -297,4 +322,37 @@ export function getLatestThreat(): ThreatEvent | undefined {
 /** Full "Hacker Action Log" — every unauthorized action, warning, and block, most recent first. */
 export function getActionLog(limit = 200): ThreatEvent[] {
   return threatLog.slice(0, limit);
+}
+
+/** Load recent threat events from DB into memory. Called once at startup. */
+export async function bootstrapThreatStore(): Promise<void> {
+  try {
+    const rows = await db
+      .select()
+      .from(threatEventsTable)
+      .orderBy(desc(threatEventsTable.createdAt))
+      .limit(MAX_LOG);
+
+    for (const row of rows) {
+      threatLog.push({
+        id: row.id,
+        type: row.type as ThreatType,
+        severity: row.severity as ThreatSeverity,
+        ip: row.ip,
+        userId: row.userId ?? undefined,
+        method: row.method,
+        path: row.path,
+        action: row.action,
+        reason: row.reason,
+        blocked: row.blocked,
+        preBlockWarning: row.preBlockWarning,
+        attemptNumber: row.attemptNumber,
+        createdAt: row.createdAt,
+      });
+    }
+
+    logger.info({ count: threatLog.length }, "Threat store bootstrapped from DB");
+  } catch (err) {
+    logger.error({ err }, "Failed to bootstrap threat store from DB");
+  }
 }
