@@ -1,10 +1,13 @@
-import { Router, type IRouter } from "express";
-import { jobsData, type JobRecord } from "../data/jobs";
+import { Router, type IRouter, type Request, type Response } from "express";
+import { jobsData, type JobRecord } from "../data/jobs.js";
 import { recordActivity } from "../lib/social-store.js";
+import { scrapeJobs } from "../lib/job-scraper.js";
+import { sendOutreachEmail } from "../lib/job-outreach.js";
+import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
 
-let jobs: JobRecord[] = [...jobsData];
+export const jobStore: { jobs: JobRecord[] } = { jobs: [...jobsData] };
 let jobCounter = 1;
 
 interface Application {
@@ -32,9 +35,9 @@ const ACCENTS = [
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-router.get("/jobs", (req, res) => {
+router.get("/jobs", (req: Request, res: Response): void => {
   const { category, search } = req.query as Record<string, string | undefined>;
-  let results = jobs;
+  let results = jobStore.jobs;
 
   if (category && category !== "All") {
     results = results.filter((j) => j.category === category);
@@ -53,7 +56,7 @@ router.get("/jobs", (req, res) => {
   res.json({ jobs: results, total: results.length });
 });
 
-router.post("/jobs", (req, res) => {
+router.post("/jobs", (req: Request, res: Response): void => {
   const body = req.body as Partial<{
     title: string;
     company: string;
@@ -71,16 +74,19 @@ router.post("/jobs", (req, res) => {
   const tags = Array.isArray(body.tags) ? body.tags.slice(0, 10).map(String) : [];
 
   if (!title || !company || !category || !type || !location || !salaryRange || !description) {
-    return res.status(400).json({
+    res.status(400).json({
       error: "MISSING_FIELDS",
       message: "title, company, category, type, location, salaryRange and description are required",
     });
+    return;
   }
   if (!JOB_TYPES.includes(type as JobType)) {
-    return res.status(400).json({ error: "INVALID_TYPE", message: `type must be one of: ${JOB_TYPES.join(", ")}` });
+    res.status(400).json({ error: "INVALID_TYPE", message: `type must be one of: ${JOB_TYPES.join(", ")}` });
+    return;
   }
   if (description.length < 10) {
-    return res.status(400).json({ error: "DESCRIPTION_TOO_SHORT", message: "Description must be at least 10 characters" });
+    res.status(400).json({ error: "DESCRIPTION_TOO_SHORT", message: "Description must be at least 10 characters" });
+    return;
   }
 
   const job: JobRecord = {
@@ -95,28 +101,33 @@ router.post("/jobs", (req, res) => {
     description,
     tags,
     postedAt: new Date().toISOString().slice(0, 10),
-    accentColor: ACCENTS[jobs.length % ACCENTS.length]!,
+    accentColor: ACCENTS[jobStore.jobs.length % ACCENTS.length]!,
+    source: "manual",
   };
 
-  jobs = [job, ...jobs];
+  jobStore.jobs = [job, ...jobStore.jobs];
   req.log.info({ jobId: job.id }, "job posted");
   recordActivity("job_posted", job.company, job.title);
-  return res.status(201).json({ job });
+  res.status(201).json({ job });
 });
 
-router.post("/jobs/:id/apply", (req, res) => {
-  const job = jobs.find((j) => j.id === req.params.id);
+router.post("/jobs/:id/apply", (req: Request, res: Response): void => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const job = jobStore.jobs.find((j) => j.id === id);
   if (!job) {
-    return res.status(404).json({ error: "NOT_FOUND", message: "Job not found" });
+    res.status(404).json({ error: "NOT_FOUND", message: "Job not found" });
+    return;
   }
 
   const { name, email, message } = req.body as Partial<{ name: string; email: string; message: string }>;
 
   if (!name || !email) {
-    return res.status(400).json({ error: "MISSING_FIELDS", message: "name and email are required" });
+    res.status(400).json({ error: "MISSING_FIELDS", message: "name and email are required" });
+    return;
   }
   if (!EMAIL_RE.test(email)) {
-    return res.status(400).json({ error: "INVALID_EMAIL", message: "Invalid email address" });
+    res.status(400).json({ error: "INVALID_EMAIL", message: "Invalid email address" });
+    return;
   }
 
   const application: Application = {
@@ -131,7 +142,34 @@ router.post("/jobs/:id/apply", (req, res) => {
   req.log.info({ jobId: job.id, applicationId: application.id }, "job application submitted");
   recordActivity("job_applied", name, job.title);
 
-  return res.status(201).json({ success: true, applicationId: application.id });
+  res.status(201).json({ success: true, applicationId: application.id });
+});
+
+router.post("/jobs/scrape", async (req: Request, res: Response): Promise<void> => {
+  logger.info("Manual scrape triggered via API");
+  try {
+    const scraped = await scrapeJobs();
+    const existingIds = new Set(jobStore.jobs.map((j) => j.id));
+    const newJobs = scraped.filter((j) => !existingIds.has(j.id));
+
+    jobStore.jobs = [...newJobs, ...jobStore.jobs];
+
+    const outreachResults: { jobId: string; status: string }[] = [];
+    for (const job of newJobs) {
+      if (job.hrEmail && job.outreachStatus === "pending") {
+        const result = await sendOutreachEmail(job);
+        job.outreachStatus = result === "sent" ? "sent" : result === "failed" ? "failed" : job.outreachStatus;
+        outreachResults.push({ jobId: job.id, status: job.outreachStatus ?? "unknown" });
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+
+    req.log.info({ newCount: newJobs.length }, "Manual scrape complete");
+    res.json({ added: newJobs.length, outreach: outreachResults, jobs: newJobs });
+  } catch (err) {
+    req.log.error({ err }, "Manual scrape failed");
+    res.status(500).json({ error: "SCRAPE_FAILED", message: "Scrape encountered an error" });
+  }
 });
 
 export default router;

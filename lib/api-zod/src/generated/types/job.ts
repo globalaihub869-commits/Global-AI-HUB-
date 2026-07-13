@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { JobOutreachStatus } from './jobOutreachStatus';
 import type { JobType } from './jobType';
 
 export interface Job {
@@ -20,4 +21,7 @@ export interface Job {
   tags: string[];
   postedAt: string;
   accentColor: string;
+  hrEmail?: string;
+  outreachStatus?: JobOutreachStatus;
+  source?: string;
 }

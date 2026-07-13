@@ -723,6 +723,13 @@ components:
           type: string
         accentColor:
           type: string
+        hrEmail:
+          type: string
+        outreachStatus:
+          type: string
+          enum: [pending, sent, failed]
+        source:
+          type: string
       required:
         - id
         - title

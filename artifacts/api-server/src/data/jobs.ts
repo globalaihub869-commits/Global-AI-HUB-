@@ -11,6 +11,9 @@ export interface JobRecord {
   tags: string[];
   postedAt: string;
   accentColor: string;
+  hrEmail?: string;
+  outreachStatus?: "pending" | "sent" | "failed";
+  source?: string;
 }
 
 export const JOB_CATEGORIES = [

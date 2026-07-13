@@ -15,6 +15,7 @@ import {
 import {
   Search, MapPin, Briefcase, Wifi, DollarSign, X, Plus,
   Building2, ChevronRight, AlertCircle, CheckCircle2, Send, MessageCircle,
+  Mail, Clock, Rss,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useListJobs, usePostJob, useApplyToJob } from "@workspace/api-client-react";
@@ -62,6 +63,38 @@ function JobCardSkeleton() {
   );
 }
 
+function OutreachBadge({ status, source }: { status?: string; source?: string }) {
+  if (source === "scraped" && status === "sent") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-400/10 border border-emerald-400/30 text-emerald-400">
+        <Mail className="w-3 h-3" /> Email Sent
+      </span>
+    );
+  }
+  if (source === "scraped" && status === "pending") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-yellow-400/10 border border-yellow-400/30 text-yellow-400">
+        <Clock className="w-3 h-3" /> Pending
+      </span>
+    );
+  }
+  if (source === "scraped" && status === "failed") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-400/10 border border-red-400/30 text-red-400">
+        <AlertCircle className="w-3 h-3" /> Email Failed
+      </span>
+    );
+  }
+  if (source === "scraped") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-400/10 border border-cyan-400/30 text-cyan-400">
+        <Rss className="w-3 h-3" /> Scraped
+      </span>
+    );
+  }
+  return null;
+}
+
 function JobCard({ job, idx, onApply, onMessage }: { job: Job; idx: number; onApply: (job: Job) => void; onMessage: (job: Job) => void }) {
   return (
     <motion.div
@@ -86,9 +119,12 @@ function JobCard({ job, idx, onApply, onMessage }: { job: Job; idx: number; onAp
             >
               <Building2 className="w-5 h-5" />
             </div>
-            <Badge variant="outline" className="text-xs border-white/10 text-muted-foreground px-2.5 py-0.5">
-              {job.type}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <OutreachBadge status={job.outreachStatus} source={job.source} />
+              <Badge variant="outline" className="text-xs border-white/10 text-muted-foreground px-2.5 py-0.5">
+                {job.type}
+              </Badge>
+            </div>
           </div>
           <h3 className="text-lg font-display font-bold text-white group-hover:text-primary transition-colors leading-tight mb-1">
             {job.title}

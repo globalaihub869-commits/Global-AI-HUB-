@@ -63,6 +63,15 @@ export const JobType = {
   Freelance: 'Freelance',
 } as const;
 
+export type JobOutreachStatus = typeof JobOutreachStatus[keyof typeof JobOutreachStatus];
+
+
+export const JobOutreachStatus = {
+  pending: 'pending',
+  sent: 'sent',
+  failed: 'failed',
+} as const;
+
 export interface Job {
   id: string;
   title: string;
@@ -76,6 +85,9 @@ export interface Job {
   tags: string[];
   postedAt: string;
   accentColor: string;
+  hrEmail?: string;
+  outreachStatus?: JobOutreachStatus;
+  source?: string;
 }
 
 export type JobInputType = typeof JobInputType[keyof typeof JobInputType];

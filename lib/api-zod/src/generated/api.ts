@@ -165,7 +165,10 @@ export const ListJobsResponse = zod.object({
   "description": zod.string(),
   "tags": zod.array(zod.string()),
   "postedAt": zod.string(),
-  "accentColor": zod.string()
+  "accentColor": zod.string(),
+  "hrEmail": zod.string().optional(),
+  "outreachStatus": zod.enum(['pending', 'sent', 'failed']).optional(),
+  "source": zod.string().optional()
 })),
   "total": zod.number()
 })
@@ -199,7 +202,10 @@ export const PostJobResponse = zod.object({
   "description": zod.string(),
   "tags": zod.array(zod.string()),
   "postedAt": zod.string(),
-  "accentColor": zod.string()
+  "accentColor": zod.string(),
+  "hrEmail": zod.string().optional(),
+  "outreachStatus": zod.enum(['pending', 'sent', 'failed']).optional(),
+  "source": zod.string().optional()
 })
 })
 

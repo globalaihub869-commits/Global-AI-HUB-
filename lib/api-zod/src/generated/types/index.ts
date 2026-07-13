@@ -26,6 +26,7 @@ export * from './jobApplicationInput';
 export * from './jobInput';
 export * from './jobInputType';
 export * from './jobListResponse';
+export * from './jobOutreachStatus';
 export * from './jobType';
 export * from './leaderboardEntry';
 export * from './leaderboardResponse';
