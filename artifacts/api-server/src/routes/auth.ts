@@ -102,9 +102,16 @@ router.get("/auth/me", async (req, res) => {
 
 router.get("/auth/google/callback", async (req, res) => {
   const { code, error: oauthError } = req.query as { code?: string; error?: string };
-  const frontendBase = process.env.REPLIT_DOMAINS
-    ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}`
-    : "http://localhost:80";
+
+  // Derive the base URL from the actual incoming request so it always matches
+  // the redirect_uri the browser sent to Google — critical for custom domains.
+  // FRONTEND_URL env var can override if needed (e.g. during local dev).
+  const frontendBase = (() => {
+    if (process.env.FRONTEND_URL) return process.env.FRONTEND_URL.replace(/\/$/, "");
+    const proto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim() ?? req.protocol ?? "https";
+    const host = (req.headers["x-forwarded-host"] as string | undefined)?.split(",")[0]?.trim() ?? req.headers.host ?? "localhost";
+    return `${proto}://${host}`;
+  })();
 
   if (oauthError || !code) {
     res.redirect(`${frontendBase}/login?error=google_denied`);

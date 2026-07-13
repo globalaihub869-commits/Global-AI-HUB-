@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { CircuitBoard, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import GoogleOAuthButton from "@/components/auth/GoogleOAuthButton";
 
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  google_denied: "Google sign-in was cancelled. Please try again or use email & password.",
+  google_token_failed: "Google authentication failed — the authorisation code was invalid or expired. Please try again.",
+  google_no_email: "Your Google account did not share an email address. Please use email & password instead.",
+  google_not_configured: "Google sign-in is not yet active on this server. Please use email & password.",
+  google_failed: "Google sign-in encountered an unexpected error. Please try again.",
+};
+
 export default function Login() {
   const { login } = useAuth();
   const [, navigate] = useLocation();
@@ -14,7 +22,16 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    const code = new URLSearchParams(window.location.search).get("error") ?? "";
+    return GOOGLE_ERROR_MESSAGES[code] ?? null;
+  });
+
+  useMemo(() => {
+    if (window.location.search.includes("error=google")) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

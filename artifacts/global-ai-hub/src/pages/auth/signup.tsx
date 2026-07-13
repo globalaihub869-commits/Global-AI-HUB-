@@ -26,6 +26,14 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  google_denied: "Google sign-up was cancelled. Please try again or use email & password.",
+  google_token_failed: "Google authentication failed — the authorisation code was invalid or expired. Please try again.",
+  google_no_email: "Your Google account did not share an email address. Please sign up with email & password instead.",
+  google_not_configured: "Google sign-up is not yet active on this server. Please use email & password.",
+  google_failed: "Google sign-up encountered an unexpected error. Please try again.",
+};
+
 export default function Signup() {
   const { signup } = useAuth();
   const [, navigate] = useLocation();
@@ -34,9 +42,18 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    const code = new URLSearchParams(window.location.search).get("error") ?? "";
+    return GOOGLE_ERROR_MESSAGES[code] ?? null;
+  });
 
-  const referralCode = useMemo(() => new URLSearchParams(window.location.search).get("ref") ?? undefined, []);
+  const referralCode = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error")?.startsWith("google")) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    return params.get("ref") ?? undefined;
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
