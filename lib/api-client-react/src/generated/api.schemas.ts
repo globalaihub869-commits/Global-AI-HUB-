@@ -117,6 +117,10 @@ export interface JobListResponse {
   total: number;
 }
 
+export interface TestEmailInput {
+  to: string;
+}
+
 export interface JobApplicationInput {
   name: string;
   email: string;
@@ -377,6 +381,11 @@ category?: string;
 
 export type PostJob201 = {
   job: Job;
+};
+
+export type SendJobTestEmail200 = {
+  success?: boolean;
+  message?: string;
 };
 
 export type ApplyToJob201 = {

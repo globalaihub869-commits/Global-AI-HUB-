@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { jobsData, type JobRecord } from "../data/jobs.js";
 import { recordActivity } from "../lib/social-store.js";
 import { scrapeJobs } from "../lib/job-scraper.js";
-import { sendOutreachEmail } from "../lib/job-outreach.js";
+import { sendOutreachEmail, sendTestEmail } from "../lib/job-outreach.js";
 import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
@@ -143,6 +143,20 @@ router.post("/jobs/:id/apply", (req: Request, res: Response): void => {
   recordActivity("job_applied", name, job.title);
 
   res.status(201).json({ success: true, applicationId: application.id });
+});
+
+router.post("/jobs/test-email", async (req: Request, res: Response): Promise<void> => {
+  const { to } = req.body as { to?: string };
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    res.status(400).json({ error: "INVALID_EMAIL", message: "Provide a valid 'to' email address" });
+    return;
+  }
+  const result = await sendTestEmail(to);
+  if (result === "sent") {
+    res.json({ success: true, message: `Test email sent to ${to}` });
+  } else {
+    res.status(500).json({ success: false, message: "Email failed — check MAIL_PASSWORD secret and server logs" });
+  }
 });
 
 router.post("/jobs/scrape", async (req: Request, res: Response): Promise<void> => {

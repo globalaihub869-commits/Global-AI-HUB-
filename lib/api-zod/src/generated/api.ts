@@ -211,6 +211,19 @@ export const PostJobResponse = zod.object({
 
 
 /**
+ * @summary Send a test outreach email to verify Gmail integration
+ */
+export const SendJobTestEmailBody = zod.object({
+  "to": zod.string().email()
+})
+
+export const SendJobTestEmailResponse = zod.object({
+  "success": zod.boolean().optional(),
+  "message": zod.string().optional()
+})
+
+
+/**
  * @summary Submit an application to a job
  */
 export const ApplyToJobParams = zod.object({

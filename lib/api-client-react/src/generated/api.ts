@@ -48,8 +48,10 @@ import type {
   RewardRedemption,
   RewardsResponse,
   SendConversationMessage201,
+  SendJobTestEmail200,
   StartConversation201,
   StartConversationInput,
+  TestEmailInput,
   TokenBalance,
   Tool,
   ToolListResponse
@@ -635,6 +637,76 @@ export const usePostJob = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getPostJobMutationOptions(options));
+    }
+
+export const getSendJobTestEmailUrl = () => {
+
+
+
+
+  return `/api/jobs/test-email`
+}
+
+/**
+ * @summary Send a test outreach email to verify Gmail integration
+ */
+export const sendJobTestEmail = async (testEmailInput: TestEmailInput, options?: RequestInit): Promise<SendJobTestEmail200> => {
+
+  return customFetch<SendJobTestEmail200>(getSendJobTestEmailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(testEmailInput)
+  }
+);}
+
+
+
+
+export const getSendJobTestEmailMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendJobTestEmail>>, TError,{data: BodyType<TestEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendJobTestEmail>>, TError,{data: BodyType<TestEmailInput>}, TContext> => {
+
+const mutationKey = ['sendJobTestEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendJobTestEmail>>, {data: BodyType<TestEmailInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendJobTestEmail(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendJobTestEmailMutationResult = NonNullable<Awaited<ReturnType<typeof sendJobTestEmail>>>
+    export type SendJobTestEmailMutationBody = BodyType<TestEmailInput>
+    export type SendJobTestEmailMutationError = ErrorType<void>
+
+    /**
+ * @summary Send a test outreach email to verify Gmail integration
+ */
+export const useSendJobTestEmail = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendJobTestEmail>>, TError,{data: BodyType<TestEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendJobTestEmail>>,
+        TError,
+        {data: BodyType<TestEmailInput>},
+        TContext
+      > => {
+      return useMutation(getSendJobTestEmailMutationOptions(options));
     }
 
 export const getApplyToJobUrl = (id: string,) => {

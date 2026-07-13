@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startJobScheduler } from "./lib/job-scheduler.js";
+import { verifyMailTransporter } from "./lib/job-outreach.js";
 import { jobStore } from "./routes/jobs.js";
 
 const rawPort = process.env["PORT"];
@@ -24,5 +25,8 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
-  startJobScheduler(jobStore);
+  verifyMailTransporter().then((ok) => {
+    if (ok) startJobScheduler(jobStore);
+    else logger.warn("Job scheduler NOT started — mail transporter failed verification");
+  });
 });
