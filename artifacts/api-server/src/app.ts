@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 import { inspectRequest, isBlocked } from "./lib/threat-store.js";
+import { recordRequest } from "./lib/request-stats.js";
 
 const app: Express = express();
 
@@ -85,6 +86,15 @@ app.use(
     },
   }),
 );
+
+// Record every completed request for the real-time traffic stats.
+// Must be registered before the router so the "finish" listener is always attached.
+app.use((_req, res, next) => {
+  res.on("finish", () => {
+    recordRequest(res.statusCode >= 500);
+  });
+  next();
+});
 
 app.use("/api", router);
 

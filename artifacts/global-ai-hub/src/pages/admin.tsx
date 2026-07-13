@@ -150,9 +150,13 @@ const threatSeverityStyle: Record<ThreatEvent["severity"], string> = {
   critical: "text-red-300 border-red-400/40 bg-red-400/10",
 };
 
-interface TrafficPoint {
-  t: number;
-  visitors: number;
+interface RealtimeStats {
+  totalUsers: number;
+  totalInteractions: number;
+  requestsPerMin: number;
+  errorRate: number;
+  trafficHistory: { t: number; requests: number }[];
+  recentEvents: { id: string; text: string }[];
 }
 
 const statusStyle: Record<SupportTicket["status"], string> = {
@@ -179,7 +183,6 @@ const sourceLabel: Record<SupportTicket["source"], string> = {
   "self-heal": "Self-Healing System",
 };
 
-const REGIONS = ["United States", "Germany", "India", "Brazil", "Japan", "Nigeria", "France", "UAE"];
 
 /** Live Audio/Visual push chime: an alarm blip for blocked threats, a bright chime for purchases, an urgent gold arpeggio for VIP tickets. */
 function playPushChime(type: LiveEvent["type"]) {
@@ -212,14 +215,7 @@ function playPushChime(type: LiveEvent["type"]) {
 
 export default function AdminDashboard() {
   const { healEvents, healthStatus, totalAutoHeals } = useSupport();
-  const [activeUsers, setActiveUsers] = useState(312);
-  const [requestsPerMin, setRequestsPerMin] = useState(1840);
-  const [pageViews, setPageViews] = useState(58211);
-  const [errorRate, setErrorRate] = useState(0.42);
-  const [history, setHistory] = useState<TrafficPoint[]>(() =>
-    Array.from({ length: 20 }, (_, i) => ({ t: i, visitors: 280 + Math.round(Math.sin(i / 2) * 30) })),
-  );
-  const [feed, setFeed] = useState<{ id: string; text: string }[]>([]);
+  const [realtimeStats, setRealtimeStats] = useState<RealtimeStats | null>(null);
   const [playgroundActivity, setPlaygroundActivity] = useState<PlaygroundActivity | null>(null);
   const [threatSummary, setThreatSummary] = useState<ThreatSummary | null>(null);
   const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
@@ -440,30 +436,18 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveUsers((prev) => Math.max(120, prev + Math.round((Math.random() - 0.45) * 24)));
-      setRequestsPerMin((prev) => Math.max(600, prev + Math.round((Math.random() - 0.5) * 180)));
-      setPageViews((prev) => prev + Math.round(Math.random() * 40 + 5));
-      setErrorRate((prev) => Math.max(0, Math.min(3, prev + (Math.random() - 0.5) * 0.15)));
-      setHistory((prev) => {
-        const next = [...prev.slice(1), { t: prev[prev.length - 1].t + 1, visitors: Math.max(80, activeUsers + Math.round((Math.random() - 0.5) * 40)) }];
-        return next;
-      });
-      if (Math.random() < 0.5) {
-        const region = REGIONS[Math.floor(Math.random() * REGIONS.length)];
-        const pages = ["/tools", "/", "/news", "/models", "/dashboard"];
-        const page = pages[Math.floor(Math.random() * pages.length)];
-        setFeed((prev) => [
-          { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, text: `New visitor from ${region} viewing ${page}` },
-          ...prev,
-        ].slice(0, 8));
-      }
-    }, 2000);
+    const load = () => {
+      apiFetch("/admin/realtime-stats")
+        .then((data: RealtimeStats) => setRealtimeStats(data))
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 5000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const max = Math.max(...history.map((h) => h.visitors), 1);
+  const trafficHistory = realtimeStats?.trafficHistory ?? [];
+  const max = Math.max(...trafficHistory.map((h) => h.requests), 1);
 
   return (
     <div className="container mx-auto px-4 py-28 max-w-6xl" data-testid="page-admin-dashboard">
@@ -629,10 +613,10 @@ export default function AdminDashboard() {
       {/* Live stat tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Active Users", value: activeUsers.toLocaleString(), icon: Users, color: "text-primary" },
-          { label: "Requests / min", value: requestsPerMin.toLocaleString(), icon: Gauge, color: "text-secondary" },
-          { label: "Page Views (24h)", value: pageViews.toLocaleString(), icon: Globe2, color: "text-cyan-300" },
-          { label: "Error Rate", value: `${errorRate.toFixed(2)}%`, icon: Activity, color: errorRate > 1.5 ? "text-red-400" : "text-emerald-400" },
+          { label: "Registered Users", value: realtimeStats ? realtimeStats.totalUsers.toLocaleString() : "—", icon: Users, color: "text-primary" },
+          { label: "Requests / min", value: realtimeStats ? realtimeStats.requestsPerMin.toLocaleString() : "—", icon: Gauge, color: "text-secondary" },
+          { label: "Total Interactions", value: realtimeStats ? realtimeStats.totalInteractions.toLocaleString() : "—", icon: Globe2, color: "text-cyan-300" },
+          { label: "Error Rate", value: realtimeStats ? `${realtimeStats.errorRate.toFixed(2)}%` : "—", icon: Activity, color: realtimeStats && realtimeStats.errorRate > 1.5 ? "text-red-400" : "text-emerald-400" },
         ].map((stat) => (
           <Card key={stat.label} className="bg-[hsl(240,15%,8%)] border-white/8" data-testid={`stat-${stat.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
             <CardContent className="p-4">
@@ -662,18 +646,18 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-40 flex items-end gap-1">
-              {history.map((point, i) => (
+              {trafficHistory.map((point, i) => (
                 <motion.div
                   key={point.t}
                   initial={{ height: 0 }}
-                  animate={{ height: `${Math.max(4, (point.visitors / max) * 100)}%` }}
+                  animate={{ height: `${Math.max(4, (point.requests / max) * 100)}%` }}
                   transition={{ duration: 0.4 }}
                   className="flex-1 rounded-t-sm bg-gradient-to-t from-primary/60 to-secondary/70"
-                  style={{ opacity: 0.5 + (i / history.length) * 0.5 }}
+                  style={{ opacity: 0.5 + (i / Math.max(trafficHistory.length, 1)) * 0.5 }}
                 />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground/60 mt-3">Concurrent visitors, updating every 2 seconds</p>
+            <p className="text-xs text-muted-foreground/60 mt-3">Real API requests per 3-second window, updating every 5 seconds</p>
           </CardContent>
         </Card>
 
@@ -686,16 +670,16 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="max-h-48 overflow-y-auto flex flex-col gap-2">
             <AnimatePresence initial={false}>
-              {feed.length === 0 ? (
-                <p className="text-sm text-muted-foreground/60 py-4 text-center">Waiting for activity...</p>
+              {(realtimeStats?.recentEvents ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground/60 py-4 text-center">No threat events recorded yet.</p>
               ) : (
-                feed.map((f) => (
+                (realtimeStats?.recentEvents ?? []).map((f) => (
                   <motion.div
                     key={f.id}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0 }}
-                    className="text-xs text-muted-foreground border-l-2 border-primary/40 pl-2"
+                    className="text-xs text-muted-foreground border-l-2 border-primary/40 pl-2 font-mono"
                     data-testid={`feed-item-${f.id}`}
                   >
                     {f.text}

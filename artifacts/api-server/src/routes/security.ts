@@ -3,6 +3,9 @@ import { getUserById } from "../lib/users.js";
 import { getThreatSummary, getActionLog, unblockIp } from "../lib/threat-store.js";
 import { getExecutiveSummary } from "../lib/conversions-store.js";
 import { subscribeLiveEvents } from "../lib/live-events.js";
+import { getRequestsPerMin, getErrorRate, getTrafficHistory } from "../lib/request-stats.js";
+import { db, usersTable, interactionsTable } from "@workspace/db";
+import { count } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -26,6 +29,23 @@ router.get("/security/threats", requireAdmin, (_req, res) => {
 
 router.get("/security/executive-summary", requireAdmin, (_req, res) => {
   res.json(getExecutiveSummary());
+});
+
+router.get("/admin/realtime-stats", requireAdmin, async (_req, res): Promise<void> => {
+  const [usersRow] = await db.select({ total: count() }).from(usersTable);
+  const [interactionsRow] = await db.select({ total: count() }).from(interactionsTable);
+  const actionLog = getActionLog(8);
+  res.json({
+    totalUsers: usersRow?.total ?? 0,
+    totalInteractions: interactionsRow?.total ?? 0,
+    requestsPerMin: getRequestsPerMin(),
+    errorRate: getErrorRate(),
+    trafficHistory: getTrafficHistory(),
+    recentEvents: actionLog.map((e) => ({
+      id: e.id,
+      text: `${e.severity.toUpperCase()}: ${e.method} ${e.path} from ${e.ip}`,
+    })),
+  });
 });
 
 router.get("/security/action-log", requireAdmin, (_req, res) => {
