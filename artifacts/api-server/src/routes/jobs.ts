@@ -3,6 +3,11 @@ import { jobsData, type JobRecord } from "../data/jobs.js";
 import { recordActivity } from "../lib/social-store.js";
 import { scrapeJobs } from "../lib/job-scraper.js";
 import { sendOutreachEmail, sendTestEmail } from "../lib/job-outreach.js";
+import { getSocialPostStats } from "../lib/social-poster.js";
+import { jobStats } from "../lib/job-scheduler.js";
+import { db } from "@workspace/db";
+import { jobs as jobsTable } from "@workspace/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
@@ -173,6 +178,74 @@ router.get("/jobs/activity-log", (req: Request, res: Response): void => {
     }));
 
   res.json({ stats, log });
+});
+
+// ── Job Status Report (new) ──────────────────────────────────────────────────
+router.get("/jobs/report", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const socialStats = await getSocialPostStats();
+
+    // Pull rejected jobs from DB for audit log
+    const rejectedRows = await db
+      .select({
+        id: jobsTable.id,
+        title: jobsTable.title,
+        company: jobsTable.company,
+        rejectedReason: jobsTable.rejectedReason,
+        qualityScore: jobsTable.qualityScore,
+        createdAt: jobsTable.createdAt,
+      })
+      .from(jobsTable)
+      .where(eq(jobsTable.rejected, true))
+      .orderBy(desc(jobsTable.createdAt))
+      .limit(50)
+      .catch(() => []);
+
+    // Email log from in-memory job store (accepted jobs with outreach)
+    const emailLog = jobStore.jobs
+      .filter((j) => j.source === "scraped" && j.hrEmail)
+      .map((j) => ({
+        jobId: j.id,
+        company: j.company,
+        title: j.title,
+        to: j.hrEmail!,
+        status: j.outreachStatus ?? "pending",
+      }))
+      .slice(0, 50);
+
+    const active = jobStore.jobs.filter((j) => !j.source || j.source !== "rejected");
+
+    res.json({
+      scheduler: {
+        ...jobStats,
+        isRunning: true,
+      },
+      jobs: {
+        total: jobStore.jobs.length,
+        active: active.length,
+        scraped: jobStore.jobs.filter((j) => j.source === "scraped").length,
+        manual: jobStore.jobs.filter((j) => j.source === "manual").length,
+        rejected: rejectedRows.length,
+        withEmail: jobStore.jobs.filter((j) => j.hrEmail).length,
+        emailSent: jobStore.jobs.filter((j) => j.outreachStatus === "sent").length,
+        emailPending: jobStore.jobs.filter((j) => j.outreachStatus === "pending").length,
+        emailFailed: jobStore.jobs.filter((j) => j.outreachStatus === "failed").length,
+      },
+      social: socialStats,
+      emailLog,
+      rejectedLog: rejectedRows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        company: r.company,
+        reason: r.rejectedReason,
+        score: r.qualityScore,
+        at: r.createdAt?.toISOString() ?? "",
+      })),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to generate job report");
+    res.status(500).json({ error: "REPORT_FAILED", message: "Could not generate report" });
+  }
 });
 
 router.post("/jobs/test-email", async (req: Request, res: Response): Promise<void> => {

@@ -1,6 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { startJobScheduler } from "./lib/job-scheduler.js";
+import { startJobScheduler, bootstrapJobsFromDb } from "./lib/job-scheduler.js";
 import { verifyMailTransporter } from "./lib/job-outreach.js";
 import { jobStore } from "./routes/jobs.js";
 import { bootstrapSupportStore } from "./lib/support-store.js";
@@ -36,6 +36,7 @@ app.listen(port, (err) => {
     bootstrapThreatStore(),
     bootstrapVipEmailer(),
     bootstrapConversionsStore(),
+    bootstrapJobsFromDb(jobStore),
   ]).then(() => {
     logger.info("All persistent stores bootstrapped from DB");
   }).catch((err) => {
@@ -44,6 +45,9 @@ app.listen(port, (err) => {
 
   verifyMailTransporter().then((ok) => {
     if (ok) startJobScheduler(jobStore);
-    else logger.warn("Job scheduler NOT started — mail transporter failed verification");
+    else {
+      logger.warn("Mail transporter verification failed — starting job scheduler anyway (email outreach disabled)");
+      startJobScheduler(jobStore);
+    }
   });
 });

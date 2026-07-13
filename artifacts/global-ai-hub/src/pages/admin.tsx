@@ -5,7 +5,7 @@ import {
   BrainCircuit, Bot, Ticket as TicketIcon, Code2, Blocks, Lock, Tag, ShieldBan, Crown, TrendingUp, Ban,
   ScrollText, Unlock, BellRing, Send, Archive, Star, Wallet, ExternalLink, XCircle,
   Rss, Mail, Hourglass, AlertCircle, Building2, MapPin, RefreshCw,
-  Briefcase, Heart, Share2,
+  Briefcase, Heart, Share2, BarChart3, Twitter, Linkedin, Filter, Zap,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +106,52 @@ interface GigsActivity {
     likes: number;
     shares: number;
   }[];
+}
+
+interface JobReport {
+  scheduler: {
+    totalScraped: number;
+    totalAccepted: number;
+    totalRejected: number;
+    emailsSent: number;
+    emailsFailed: number;
+    socialPostsQueued: number;
+    lastRunAt: string | null;
+    lastRunAdded: number;
+    cycles: number;
+    isRunning: boolean;
+  };
+  jobs: {
+    total: number;
+    active: number;
+    scraped: number;
+    manual: number;
+    rejected: number;
+    withEmail: number;
+    emailSent: number;
+    emailPending: number;
+    emailFailed: number;
+  };
+  social: {
+    total: number;
+    queued: number;
+    posted: number;
+    failed: number;
+    byPlatform: Record<string, { queued: number; posted: number; failed: number }>;
+    recentPosts: {
+      id: string;
+      jobId: string;
+      platform: string;
+      status: string;
+      content: string;
+      hashtags: string;
+      jobUrl: string;
+      postedAt: string | null;
+      createdAt: string;
+    }[];
+  };
+  emailLog: { jobId: string; company: string; title: string; to: string; status: string }[];
+  rejectedLog: { id: string; title: string; company: string; reason: string | null; score: number | null; at: string }[];
 }
 
 const QUICK_REPLY_TEMPLATES = [
@@ -233,6 +279,8 @@ export default function AdminDashboard() {
     log: { id: string; title: string; company: string; location: string; postedAt: string; hrEmail: string | null; outreachStatus: string | null; tags: string[] }[];
   } | null>(null);
   const [jobLogRefreshing, setJobLogRefreshing] = useState(false);
+  const [jobReport, setJobReport] = useState<JobReport | null>(null);
+  const [jobReportRefreshing, setJobReportRefreshing] = useState(false);
   const [gigsActivity, setGigsActivity] = useState<GigsActivity | null>(null);
   const [gigsLogRefreshing, setGigsLogRefreshing] = useState(false);
   const { toast } = useToast();
@@ -252,6 +300,15 @@ export default function AdminDashboard() {
     };
     load();
     const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const load = () => {
+      apiFetch("/jobs/report").then(setJobReport).catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -1069,6 +1126,203 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Job Status Report */}
+      <div className="mb-8" data-testid="section-job-status-report">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary" /> Job Status Report
+            {jobReport?.scheduler.isRunning && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-400 border border-emerald-400/25">
+                <Zap className="w-2.5 h-2.5" /> Auto-running
+              </span>
+            )}
+          </h2>
+          <button
+            onClick={() => {
+              setJobReportRefreshing(true);
+              apiFetch("/jobs/report").then(setJobReport).catch(() => {}).finally(() => setJobReportRefreshing(false));
+            }}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+            data-testid="btn-refresh-job-report"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${jobReportRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+
+        {/* Scheduler stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {[
+            { label: "Scrape Cycles", value: jobReport?.scheduler.cycles ?? 0, icon: Rss, color: "text-cyan-300" },
+            { label: "Total Scraped", value: jobReport?.scheduler.totalScraped ?? 0, icon: Activity, color: "text-primary" },
+            { label: "Accepted", value: jobReport?.scheduler.totalAccepted ?? 0, icon: CheckCircle2, color: "text-emerald-400" },
+            { label: "Rejected (Spam)", value: jobReport?.scheduler.totalRejected ?? 0, icon: Filter, color: "text-red-400" },
+          ].map((s) => (
+            <Card key={s.label} className="bg-[hsl(240,15%,8%)] border-white/8" data-testid={`stat-report-${s.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}>
+              <CardContent className="p-4">
+                <s.icon className={`w-4 h-4 mb-2 ${s.color}`} />
+                <div className="text-2xl font-display font-bold text-white">{s.value}</div>
+                <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-tight">{s.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Active jobs + social + email row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {[
+            { label: "Active Jobs", value: jobReport?.jobs.active ?? 0, icon: Briefcase, color: "text-cyan-300" },
+            { label: "Emails Sent", value: jobReport?.scheduler.emailsSent ?? 0, icon: Mail, color: "text-emerald-400" },
+            { label: "Social Queued", value: jobReport?.social.queued ?? 0, icon: Share2, color: "text-secondary" },
+            { label: "Social Posted", value: jobReport?.social.posted ?? 0, icon: CheckCircle2, color: "text-emerald-400" },
+          ].map((s) => (
+            <Card key={s.label} className="bg-[hsl(240,15%,8%)] border-white/8">
+              <CardContent className="p-4">
+                <s.icon className={`w-4 h-4 mb-2 ${s.color}`} />
+                <div className="text-2xl font-display font-bold text-white">{s.value}</div>
+                <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-tight">{s.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Social Posts Log */}
+          <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+            <CardHeader className="pb-2 pt-4 px-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <Share2 className="w-4 h-4 text-secondary" /> Social Media Posts
+              </div>
+              <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                {jobReport?.social.byPlatform && Object.entries(jobReport.social.byPlatform).map(([platform, counts]) => (
+                  <span key={platform} className="flex items-center gap-1">
+                    {platform === "twitter" ? <Twitter className="w-3 h-3 text-sky-400" /> : <Linkedin className="w-3 h-3 text-blue-400" />}
+                    <span className="capitalize">{platform}:</span>
+                    <span className="text-emerald-400">{counts.posted} posted</span>
+                    <span>·</span>
+                    <span className="text-yellow-400">{counts.queued} queued</span>
+                  </span>
+                ))}
+                {!jobReport?.social.byPlatform || Object.keys(jobReport.social.byPlatform).length === 0 ? (
+                  <span className="text-muted-foreground/50">No posts yet — runs after first scrape cycle</span>
+                ) : null}
+              </div>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              {!jobReport || jobReport.social.recentPosts.length === 0 ? (
+                <div className="py-8 flex flex-col items-center gap-2 text-center px-5">
+                  <Share2 className="w-7 h-7 text-muted-foreground/25" />
+                  <p className="text-xs text-muted-foreground/50">Posts appear here once the scheduler runs its first cycle</p>
+                </div>
+              ) : (
+                <div className="max-h-[300px] overflow-y-auto divide-y divide-white/[0.04]">
+                  {jobReport.social.recentPosts.map((post) => (
+                    <div key={post.id} className="px-5 py-3 flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-0.5">
+                        {post.platform === "twitter"
+                          ? <Twitter className="w-4 h-4 text-sky-400" />
+                          : <Linkedin className="w-4 h-4 text-blue-400" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-semibold capitalize text-white">{post.platform}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold ${
+                            post.status === "posted"
+                              ? "bg-emerald-400/10 border-emerald-400/30 text-emerald-400"
+                              : post.status === "failed"
+                              ? "bg-red-400/10 border-red-400/30 text-red-400"
+                              : "bg-yellow-400/10 border-yellow-400/30 text-yellow-400"
+                          }`}>
+                            {post.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{post.content}</p>
+                        <a href={post.jobUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-cyan-400/70 hover:text-cyan-400 truncate block mt-0.5">{post.jobUrl}</a>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/40 flex-shrink-0 pt-0.5">
+                        {new Date(post.createdAt).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Email + Rejected Logs */}
+          <div className="flex flex-col gap-4">
+            {/* Email outreach log */}
+            <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+              <CardHeader className="pb-2 pt-4 px-5">
+                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <Mail className="w-4 h-4 text-cyan-300" /> Email Outreach Log
+                </div>
+              </CardHeader>
+              <CardContent className="px-0 pb-0">
+                {!jobReport || jobReport.emailLog.length === 0 ? (
+                  <div className="py-6 text-center">
+                    <p className="text-xs text-muted-foreground/50">Emails appear here after the first scrape finds HR contacts</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[160px] overflow-y-auto divide-y divide-white/[0.04]">
+                    {jobReport.emailLog.slice(0, 20).map((e, i) => (
+                      <div key={i} className="px-5 py-2.5 flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-white truncate">{e.title} <span className="text-muted-foreground">@ {e.company}</span></p>
+                          <p className="text-[11px] text-cyan-400/70 truncate">{e.to}</p>
+                        </div>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-semibold flex-shrink-0 ${
+                          e.status === "sent"
+                            ? "bg-emerald-400/10 border-emerald-400/30 text-emerald-400"
+                            : e.status === "failed"
+                            ? "bg-red-400/10 border-red-400/30 text-red-400"
+                            : "bg-yellow-400/10 border-yellow-400/30 text-yellow-400"
+                        }`}>{e.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Rejected jobs audit */}
+            <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+              <CardHeader className="pb-2 pt-4 px-5">
+                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <Filter className="w-4 h-4 text-red-400" /> Quality Filter — Rejected Jobs
+                </div>
+              </CardHeader>
+              <CardContent className="px-0 pb-0">
+                {!jobReport || jobReport.rejectedLog.length === 0 ? (
+                  <div className="py-6 text-center">
+                    <p className="text-xs text-muted-foreground/50">No rejections yet — filter runs on every scrape cycle</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[160px] overflow-y-auto divide-y divide-white/[0.04]">
+                    {jobReport.rejectedLog.slice(0, 20).map((r) => (
+                      <div key={r.id} className="px-5 py-2.5 flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-white truncate">{r.title} <span className="text-muted-foreground">@ {r.company}</span></p>
+                          <p className="text-[11px] text-red-400/70">{r.reason ?? "quality filter"}</p>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground/50 flex-shrink-0">score {r.score ?? "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Last run info */}
+        {jobReport?.scheduler.lastRunAt && (
+          <p className="mt-3 text-[11px] text-muted-foreground/50 text-center">
+            Last cycle: {new Date(jobReport.scheduler.lastRunAt).toLocaleString()} · Added {jobReport.scheduler.lastRunAdded} jobs · Cycles: {jobReport.scheduler.cycles}
+          </p>
+        )}
       </div>
 
       {/* Gigs Activity Log */}

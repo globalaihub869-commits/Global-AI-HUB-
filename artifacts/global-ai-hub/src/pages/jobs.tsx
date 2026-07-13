@@ -362,8 +362,41 @@ export default function Jobs() {
     openVendorConversation({ vendorName: job.company, jobId: job.id, jobTitle: job.title });
   };
 
+  // JSON-LD JobPosting schema for SEO
+  const jsonLd = useMemo(() => {
+    if (jobs.length === 0) return null;
+    const postings = jobs.slice(0, 20).map((job) => ({
+      "@type": "JobPosting",
+      "title": job.title,
+      "description": job.description,
+      "identifier": { "@type": "PropertyValue", "name": job.company, "value": job.id },
+      "datePosted": job.postedAt,
+      "validThrough": new Date(new Date(job.postedAt).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      "employmentType": job.type === "Full-time" ? "FULL_TIME" : job.type === "Part-time" ? "PART_TIME" : job.type === "Contract" ? "CONTRACTOR" : "OTHER",
+      "hiringOrganization": { "@type": "Organization", "name": job.company },
+      "jobLocation": job.remote
+        ? { "@type": "Place", "address": { "@type": "PostalAddress", "addressCountry": "Worldwide" } }
+        : { "@type": "Place", "address": { "@type": "PostalAddress", "addressLocality": job.location } },
+      "applicantLocationRequirements": job.remote ? { "@type": "Country", "name": "Worldwide" } : undefined,
+      "jobLocationType": job.remote ? "TELECOMMUTE" : undefined,
+      "baseSalary": job.salaryRange && job.salaryRange !== "Competitive"
+        ? { "@type": "MonetaryAmount", "currency": "USD", "value": { "@type": "QuantitativeValue", "description": job.salaryRange, "unitText": "YEAR" } }
+        : undefined,
+      "skills": job.tags.join(", ") || undefined,
+      "industry": job.category,
+      "url": `https://globalaihubco.com/jobs`,
+    }));
+    return JSON.stringify({ "@context": "https://schema.org", "@graph": postings });
+  }, [jobs]);
+
   return (
     <div className="min-h-screen pt-24 pb-20">
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLd }}
+        />
+      )}
       <div className="fixed top-10 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-primary/10 blur-[120px] rounded-full pointer-events-none -z-10" />
       <div className="container mx-auto px-4">
         <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">

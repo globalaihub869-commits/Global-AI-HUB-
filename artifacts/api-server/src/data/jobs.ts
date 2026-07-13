@@ -14,6 +14,7 @@ export interface JobRecord {
   hrEmail?: string;
   outreachStatus?: "pending" | "sent" | "failed";
   source?: string;
+  url?: string;
 }
 
 export const JOB_CATEGORIES = [

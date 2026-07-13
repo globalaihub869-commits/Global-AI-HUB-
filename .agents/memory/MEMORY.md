@@ -8,3 +8,5 @@
 - [Admin data stores](admin-data-stores.md) — threat store, conversions, action log, VIP emails are all in-memory; reset on server restart by design.
 - [Google OAuth status](google-oauth-status.md) — frontend button only; backend callback not wired. Needs VITE_GOOGLE_CLIENT_ID + /api/auth/google/callback to go live.
 - [Vite 7 EISDIR on href="/"](vite7-eisdir-canonical.md) — Vite 7 reads all link href attrs as local assets; href="/" resolves to a directory and throws EISDIR. Never use root-relative canonical links in index.html.
+- [Job portal pipeline](job-portal-pipeline.md) — jobs + social_posts DB tables; scraper hits 6 free APIs (300+ jobs/cycle); quality filter + social queue run automatically on each 30-min cycle.
+- [Social posting architecture](social-posting-arch.md) — posts queued to DB always; actual Twitter/LinkedIn API fire only if env vars set; admin Job Status Report shows live queue state.
