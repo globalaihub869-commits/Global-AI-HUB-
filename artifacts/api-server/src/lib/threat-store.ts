@@ -32,6 +32,38 @@ export interface ThreatEvent {
   createdAt: number;
 }
 
+// ── Admin whitelist ───────────────────────────────────────────────────────────
+/** Emails that are permanently exempt from all threat-detection and IP blocking. */
+const WHITELISTED_EMAILS = new Set([
+  "faisalmiraj313@gmail.com",
+]);
+
+/** IPs that have been explicitly trusted (e.g. after a whitelisted-email login). */
+const trustedIps = new Set<string>();
+
+export function isEmailWhitelisted(email: string): boolean {
+  return WHITELISTED_EMAILS.has(email.toLowerCase().trim());
+}
+
+export function isIpTrusted(ip: string): boolean {
+  return trustedIps.has(ip);
+}
+
+/** Mark an IP as permanently trusted for this server session (reset on restart). */
+export function trustIp(ip: string): void {
+  trustedIps.add(ip);
+  // Also unblock it in case it was blocked before the login
+  blockedIps.delete(ip);
+  ipActivity.delete(ip);
+  logger.info({ ip }, "IP trusted — admin whitelist login");
+}
+
+export function clearIpSuspicion(ip: string): void {
+  blockedIps.delete(ip);
+  ipActivity.delete(ip);
+}
+
+// ── Threat-detection constants & patterns ─────────────────────────────────────
 const BOT_UA_PATTERNS = [
   /curl\//i,
   /python-requests/i,

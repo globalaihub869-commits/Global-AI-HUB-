@@ -4,7 +4,7 @@ import session from "express-session";
 import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
-import { inspectRequest, isBlocked } from "./lib/threat-store.js";
+import { inspectRequest, isBlocked, isIpTrusted } from "./lib/threat-store.js";
 import { recordRequest } from "./lib/request-stats.js";
 
 const app: Express = express();
@@ -41,6 +41,16 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
   const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+
+  // Whitelisted admin IPs and the admin-override endpoint always bypass all
+  // security checks — this is the "Admin Override" backup mechanism that lets
+  // the site owner log in even if their IP was auto-blocked.
+  const isOverridePath = req.path === "/api/auth/admin-override";
+  if (isOverridePath || isIpTrusted(ip)) {
+    next();
+    return;
+  }
+
   if (isBlocked(ip)) {
     res.status(403).json({ error: "ACCESS_BLOCKED", message: "This IP has been automatically blocked by the threat defense system" });
     return;

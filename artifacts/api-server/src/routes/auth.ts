@@ -8,7 +8,7 @@ import {
   toPublic,
   type ProfileType,
 } from "../lib/users.js";
-import { recordFailedLogin } from "../lib/threat-store.js";
+import { recordFailedLogin, isEmailWhitelisted, trustIp, clearIpSuspicion } from "../lib/threat-store.js";
 import { redeemReferral, getReferralOwnerId } from "../lib/referral-store.js";
 
 const GOOGLE_CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID ?? "";
@@ -73,16 +73,55 @@ router.post("/auth/login", async (req, res) => {
     return;
   }
 
+  const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+  const whitelisted = isEmailWhitelisted(email);
+
   const user = await verifyUser(email, password);
   if (!user) {
-    const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
-    recordFailedLogin(ip);
+    // Whitelisted admin emails are never counted toward brute-force detection.
+    if (!whitelisted) recordFailedLogin(ip);
     res.status(401).json({ error: "INVALID_CREDENTIALS", message: "Incorrect email or password" });
     return;
   }
 
+  // Successful login with a whitelisted email → permanently trust this IP for
+  // the session so the security middleware never blocks the admin again.
+  if (whitelisted) trustIp(ip);
+
   req.session.userId = user.id;
   res.json({ user: toPublic(user) });
+});
+
+// ── Admin Override — bypasses IP blocking entirely ────────────────────────────
+// This endpoint is excluded from the IP-block middleware (see app.ts). Even if
+// the admin's IP is hard-blocked, a correct email+password with a whitelisted
+// email clears the block and logs them straight in.
+router.post("/auth/admin-override", async (req, res) => {
+  const { email, password } = req.body as { email?: string; password?: string };
+  const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+
+  if (!email || !password) {
+    res.status(400).json({ error: "MISSING_FIELDS", message: "email and password are required" });
+    return;
+  }
+
+  if (!isEmailWhitelisted(email)) {
+    res.status(403).json({ error: "NOT_WHITELISTED", message: "This email is not authorised for admin override" });
+    return;
+  }
+
+  const user = await verifyUser(email, password);
+  if (!user) {
+    res.status(401).json({ error: "INVALID_CREDENTIALS", message: "Incorrect email or password" });
+    return;
+  }
+
+  // Clear any block on this IP and permanently trust it going forward.
+  clearIpSuspicion(ip);
+  trustIp(ip);
+
+  req.session.userId = user.id;
+  res.json({ user: toPublic(user), overrideApplied: true, trustedIp: ip });
 });
 
 router.get("/auth/me", async (req, res) => {
