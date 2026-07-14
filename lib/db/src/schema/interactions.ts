@@ -9,6 +9,7 @@ export const interactionsTable = pgTable("interactions", {
   userId: text("user_id"),
   action: text("action").notNull(),
   content: text("content"),
+  parentId: text("parent_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

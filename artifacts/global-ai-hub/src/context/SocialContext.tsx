@@ -26,7 +26,7 @@ interface SocialState {
 interface SocialContextValue {
   getStats: (entityId: string) => ToolSocialStats;
   toggleLike: (entityId: string, entityType: string, toolName: string) => void;
-  addComment: (entityId: string, entityType: string, toolName: string, content: string) => Promise<void>;
+  addComment: (entityId: string, entityType: string, toolName: string, content: string, parentId?: string) => Promise<void>;
   share: (entityId: string, entityType: string, toolName: string) => void;
   toggleBookmark: (entityId: string, entityType: string, toolName: string) => void;
   loadStats: (entityId: string, entityType: string) => void;
@@ -148,12 +148,13 @@ export function SocialProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.stats, mutateStat, notify, userId]);
 
-  const addComment = useCallback(async (entityId: string, entityType: string, toolName: string, content: string): Promise<void> => {
+  const addComment = useCallback(async (entityId: string, entityType: string, toolName: string, content: string, parentId?: string): Promise<void> => {
     if (!content.trim()) return;
-    mutateStat(entityId, (s) => ({ ...s, comments: s.comments + 1 }));
+    // Only bump the visible counter for top-level comments (replies are nested)
+    if (!parentId) mutateStat(entityId, (s) => ({ ...s, comments: s.comments + 1 }));
     notify(`You commented on ${toolName}. +3 Hub Points`, 3);
     if (userId) {
-      await apiFetch("/interactions/comment", { method: "POST", body: JSON.stringify({ entityId, entityType, content }) }).catch(() => {});
+      await apiFetch("/interactions/comment", { method: "POST", body: JSON.stringify({ entityId, entityType, content, parentId }) }).catch(() => {});
     }
   }, [mutateStat, notify, userId]);
 

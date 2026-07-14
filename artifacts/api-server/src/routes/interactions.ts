@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
-import { interactionsTable } from "@workspace/db";
+import { interactionsTable, usersTable } from "@workspace/db";
 import { eq, and, count, sql } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
@@ -59,6 +59,16 @@ router.get("/interactions/stats", async (req: Request, res: Response): Promise<v
   }
 });
 
+export interface ThreadedComment {
+  id: string;
+  content: string | null;
+  userId: string | null;
+  userName: string | null;
+  parentId: string | null;
+  createdAt: string;
+  replies: ThreadedComment[];
+}
+
 router.get("/interactions/comments", async (req: Request, res: Response): Promise<void> => {
   const { entityId } = req.query as { entityId?: string };
   if (!entityId) {
@@ -66,11 +76,46 @@ router.get("/interactions/comments", async (req: Request, res: Response): Promis
     return;
   }
   try {
-    const comments = await db
-      .select()
+    const rows = await db
+      .select({
+        id: interactionsTable.id,
+        content: interactionsTable.content,
+        userId: interactionsTable.userId,
+        parentId: interactionsTable.parentId,
+        createdAt: interactionsTable.createdAt,
+        userName: usersTable.name,
+      })
       .from(interactionsTable)
-      .where(and(eq(interactionsTable.entityId, entityId), eq(interactionsTable.action, "comment")));
-    res.json({ comments: comments.slice(0, 50) });
+      .leftJoin(usersTable, eq(interactionsTable.userId, usersTable.id))
+      .where(and(eq(interactionsTable.entityId, entityId), eq(interactionsTable.action, "comment")))
+      .orderBy(interactionsTable.createdAt)
+      .limit(200);
+
+    // Build threaded tree — two-pass O(n)
+    const map = new Map<string, ThreadedComment>();
+    const topLevel: ThreadedComment[] = [];
+
+    for (const row of rows) {
+      map.set(row.id, {
+        id: row.id,
+        content: row.content,
+        userId: row.userId,
+        userName: row.userName ?? null,
+        parentId: row.parentId,
+        createdAt: row.createdAt.toISOString(),
+        replies: [],
+      });
+    }
+
+    for (const node of map.values()) {
+      if (node.parentId && map.has(node.parentId)) {
+        map.get(node.parentId)!.replies.push(node);
+      } else {
+        topLevel.push(node);
+      }
+    }
+
+    res.json({ comments: topLevel });
   } catch (err) {
     logger.error({ err }, "Failed to fetch comments");
     res.status(500).json({ error: "SERVER_ERROR", message: "Could not fetch comments" });
@@ -113,7 +158,12 @@ router.post("/interactions/comment", async (req: Request, res: Response): Promis
     res.status(401).json({ error: "UNAUTHENTICATED", message: "Sign in to comment" });
     return;
   }
-  const { entityId, entityType, content } = req.body as { entityId?: string; entityType?: string; content?: string };
+  const { entityId, entityType, content, parentId } = req.body as {
+    entityId?: string;
+    entityType?: string;
+    content?: string;
+    parentId?: string;
+  };
   if (!entityId || !entityType || !content?.trim()) {
     res.status(400).json({ error: "MISSING_FIELDS", message: "entityId, entityType, and content are required" });
     return;
@@ -121,7 +171,15 @@ router.post("/interactions/comment", async (req: Request, res: Response): Promis
   try {
     const row = await db
       .insert(interactionsTable)
-      .values({ id: randomUUID(), entityType, entityId, userId, action: "comment", content: content.trim().slice(0, 500) })
+      .values({
+        id: randomUUID(),
+        entityType,
+        entityId,
+        userId,
+        action: "comment",
+        content: content.trim().slice(0, 500),
+        parentId: parentId ?? null,
+      })
       .returning();
     res.status(201).json({ comment: row[0] });
   } catch (err) {
