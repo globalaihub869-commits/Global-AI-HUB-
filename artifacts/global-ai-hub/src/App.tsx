@@ -30,6 +30,7 @@ import Login from "@/pages/auth/login";
 import Signup from "@/pages/auth/signup";
 import Onboarding from "@/pages/auth/onboarding";
 import AccountRecovery from "@/pages/auth/account-recovery";
+import AdminUnblock from "@/pages/auth/admin-unblock";
 import Dashboard from "@/pages/dashboard";
 import AdminDashboard from "@/pages/admin";
 import SupportPage from "@/pages/support";
@@ -184,6 +185,9 @@ function Router() {
         </Route>
         <Route path="/account-recovery">
           <AuthLayout><AccountRecovery /></AuthLayout>
+        </Route>
+        <Route path="/admin-unblock">
+          <AuthLayout><AdminUnblock /></AuthLayout>
         </Route>
         <Route path="/dashboard">
           <DashboardGuard />
