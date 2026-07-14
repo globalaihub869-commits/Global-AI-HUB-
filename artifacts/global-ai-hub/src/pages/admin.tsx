@@ -6,6 +6,7 @@ import {
   ScrollText, Unlock, BellRing, Send, Archive, Star, Wallet, ExternalLink, XCircle,
   Rss, Mail, Hourglass, AlertCircle, Building2, MapPin, RefreshCw,
   Briefcase, Heart, Share2, BarChart3, Twitter, Linkedin, Filter, Zap,
+  DollarSign, Package, Globe, Sparkles, Check, Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -86,6 +87,42 @@ interface AdminTicketStats {
   archived: number;
   vip: number;
   total: number;
+}
+
+interface GigDraft {
+  id: string;
+  externalId: string;
+  source: string;
+  sourceUrl: string;
+  title: string;
+  sellerName: string;
+  sellerProfileUrl: string;
+  sellerEmail: string | null;
+  description: string;
+  category: string;
+  originalPrice: number;
+  ourPrice: number;
+  rating: number;
+  reviewCount: number;
+  deliveryDays: number;
+  status: string;
+  slug: string;
+  metaTitle: string;
+  metaDescription: string;
+  hashtags: string[];
+  notificationSent: boolean;
+  publishedAt: string | null;
+  createdAt: string;
+}
+
+interface GigAggregatorStats {
+  totalFetched: number;
+  totalNew: number;
+  totalDrafts: number;
+  totalPublished: number;
+  lastRunAt: string | null;
+  cycles: number;
+  bySource: Record<string, number>;
 }
 
 interface GigsActivity {
@@ -283,6 +320,13 @@ export default function AdminDashboard() {
   const [jobReportRefreshing, setJobReportRefreshing] = useState(false);
   const [gigsActivity, setGigsActivity] = useState<GigsActivity | null>(null);
   const [gigsLogRefreshing, setGigsLogRefreshing] = useState(false);
+  const [gigDrafts, setGigDrafts] = useState<GigDraft[]>([]);
+  const [gigAggStats, setGigAggStats] = useState<GigAggregatorStats | null>(null);
+  const [gigDraftsLoading, setGigDraftsLoading] = useState(false);
+  const [gigScraping, setGigScraping] = useState(false);
+  const [gigPriceEdits, setGigPriceEdits] = useState<Record<string, string>>({});
+  const [gigPublishing, setGigPublishing] = useState<string | null>(null);
+  const [gigRejecting, setGigRejecting] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -318,6 +362,16 @@ export default function AdminDashboard() {
     };
     load();
     const interval = setInterval(load, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const loadGigAgg = () => {
+      apiFetch("/gig-aggregator/drafts").then((d: { drafts: GigDraft[] }) => setGigDrafts(d.drafts)).catch(() => {});
+      apiFetch("/gig-aggregator/stats").then((d: { scheduler: GigAggregatorStats }) => setGigAggStats(d.scheduler)).catch(() => {});
+    };
+    loadGigAgg();
+    const interval = setInterval(loadGigAgg, 20000);
     return () => clearInterval(interval);
   }, []);
 
@@ -1397,6 +1451,231 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* ── Gig Aggregator ──────────────────────────────────────────── */}
+      <div className="mb-8" data-testid="section-gig-aggregator">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
+            <Package className="w-4 h-4 text-secondary" /> Gig Aggregator
+            {gigDrafts.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary/20 text-secondary border border-secondary/30">
+                {gigDrafts.length} drafts
+              </span>
+            )}
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setGigDraftsLoading(true);
+                Promise.all([
+                  apiFetch("/gig-aggregator/drafts").then((d: { drafts: GigDraft[] }) => setGigDrafts(d.drafts)),
+                  apiFetch("/gig-aggregator/stats").then((d: { scheduler: GigAggregatorStats }) => setGigAggStats(d.scheduler)),
+                ]).catch(() => {}).finally(() => setGigDraftsLoading(false));
+              }}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${gigDraftsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+            <button
+              onClick={() => {
+                setGigScraping(true);
+                apiFetch("/gig-aggregator/scrape", { method: "POST" })
+                  .then((d: { inserted: number; scraped: number }) => {
+                    toast({ title: "Scrape complete", description: `${d.inserted} new gigs added (${d.scraped} total found)` });
+                    return Promise.all([
+                      apiFetch("/gig-aggregator/drafts").then((r: { drafts: GigDraft[] }) => setGigDrafts(r.drafts)),
+                      apiFetch("/gig-aggregator/stats").then((r: { scheduler: GigAggregatorStats }) => setGigAggStats(r.scheduler)),
+                    ]);
+                  })
+                  .catch(() => toast({ title: "Scrape failed", variant: "destructive" }))
+                  .finally(() => setGigScraping(false));
+              }}
+              disabled={gigScraping}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-secondary/15 hover:bg-secondary/25 text-secondary border border-secondary/25 transition-all disabled:opacity-50"
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${gigScraping ? "animate-spin" : ""}`} />
+              {gigScraping ? "Scraping…" : "Scrape Now"}
+            </button>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {[
+            { label: "Total Fetched", value: gigAggStats?.totalFetched ?? 0, icon: Globe, color: "text-cyan-400" },
+            { label: "Drafts", value: gigAggStats?.totalDrafts ?? gigDrafts.length, icon: Package, color: "text-secondary" },
+            { label: "Published", value: gigAggStats?.totalPublished ?? 0, icon: Check, color: "text-emerald-400" },
+            { label: "Scrape Cycles", value: gigAggStats?.cycles ?? 0, icon: RefreshCw, color: "text-yellow-400" },
+          ].map((stat) => (
+            <Card key={stat.label} className="bg-[hsl(240,15%,8%)] border-white/8">
+              <CardContent className="p-4">
+                <stat.icon className={`w-4 h-4 mb-2 ${stat.color}`} />
+                <div className="text-2xl font-display font-bold text-white">{stat.value}</div>
+                <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-tight">{stat.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Source breakdown */}
+        {gigAggStats && Object.keys(gigAggStats.bySource).length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {Object.entries(gigAggStats.bySource).map(([src, cnt]) => (
+              <span key={src} className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-muted-foreground">
+                <Globe className="w-3 h-3 text-cyan-400" /> {src}: <span className="text-white font-semibold">{cnt}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Draft gigs table */}
+        <Card className="bg-[hsl(240,15%,8%)] border-white/8">
+          <CardHeader className="pb-2 pt-4 px-5">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Package className="w-4 h-4 text-secondary" />
+              Scraped gigs pending your review — set profit margin price then publish
+            </div>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            {gigDrafts.length === 0 ? (
+              <div className="py-12 flex flex-col items-center gap-3 text-center px-5">
+                <Sparkles className="w-8 h-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground/60">No drafts yet — click <strong>Scrape Now</strong> to fetch top-rated gigs.</p>
+              </div>
+            ) : (
+              <div className="max-h-[600px] overflow-y-auto divide-y divide-white/[0.04]">
+                {gigDrafts.map((gig) => {
+                  const editedPrice = gigPriceEdits[gig.id];
+                  const displayPrice = editedPrice !== undefined ? editedPrice : String(gig.ourPrice);
+                  return (
+                    <div key={gig.id} className="px-5 py-4 hover:bg-white/[0.02] transition-colors" data-testid={`gig-draft-row-${gig.id}`}>
+                      <div className="flex items-start gap-4">
+                        {/* Main info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-sm font-semibold text-white truncate max-w-[340px]">{gig.title}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary/10 border border-secondary/20 text-secondary/80">{gig.category}</span>
+                            <a href={gig.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-cyan-400/10 border border-cyan-400/20 text-cyan-400/80 hover:text-cyan-300 transition-colors">
+                              <ExternalLink className="w-2.5 h-2.5" /> {gig.source}
+                            </a>
+                          </div>
+                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap mb-2">
+                            <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-400" />{gig.rating} ({gig.reviewCount} reviews)</span>
+                            <span>by <a href={gig.sellerProfileUrl} target="_blank" rel="noreferrer" className="text-cyan-400/80 hover:text-cyan-300">{gig.sellerName}</a></span>
+                            <span>{gig.deliveryDays}d delivery</span>
+                            <span className="text-muted-foreground/50">orig. ${gig.originalPrice}</span>
+                          </div>
+                          {/* SEO fields */}
+                          <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2.5 space-y-1.5 mb-2">
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-[10px] text-muted-foreground/60 w-20 flex-shrink-0 pt-0.5">Meta title</span>
+                              <span className="text-[11px] text-white/80 leading-snug">{gig.metaTitle}</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-[10px] text-muted-foreground/60 w-20 flex-shrink-0 pt-0.5">Meta desc</span>
+                              <span className="text-[10px] text-muted-foreground leading-snug">{gig.metaDescription}</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-[10px] text-muted-foreground/60 w-20 flex-shrink-0 pt-0.5">Slug</span>
+                              <span className="text-[10px] text-cyan-400/70 font-mono">/gigs/{gig.slug}</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-[10px] text-muted-foreground/60 w-20 flex-shrink-0 pt-0.5">Hashtags</span>
+                              <div className="flex flex-wrap gap-1">
+                                {gig.hashtags.slice(0, 6).map((h) => (
+                                  <span key={h} className="text-[9px] px-1.5 py-0.5 rounded-full bg-secondary/10 text-secondary/70">{h}</span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Price + actions */}
+                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-1.5">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                            <input
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={displayPrice}
+                              onChange={(e) => setGigPriceEdits((p) => ({ ...p, [gig.id]: e.target.value }))}
+                              onBlur={() => {
+                                const val = parseFloat(displayPrice);
+                                if (!isNaN(val) && val > 0 && val !== gig.ourPrice) {
+                                  apiFetch(`/gig-aggregator/drafts/${gig.id}`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ ourPrice: val }),
+                                  }).then((r: { gig: GigDraft }) => {
+                                    setGigDrafts((prev) => prev.map((g) => g.id === gig.id ? { ...g, ourPrice: r.gig.ourPrice } : g));
+                                    setGigPriceEdits((p) => { const n = { ...p }; delete n[gig.id]; return n; });
+                                    toast({ title: "Price updated", description: `Set to $${val}` });
+                                  }).catch(() => toast({ title: "Price update failed", variant: "destructive" }));
+                                }
+                              }}
+                              className="w-20 text-right text-sm font-display font-bold text-white bg-white/[0.06] border border-white/10 rounded-md px-2 py-1 focus:outline-none focus:border-secondary/50 focus:bg-white/[0.08] transition-colors"
+                              data-testid={`gig-price-input-${gig.id}`}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                setGigRejecting(gig.id);
+                                apiFetch(`/gig-aggregator/drafts/${gig.id}/reject`, { method: "POST" })
+                                  .then(() => {
+                                    setGigDrafts((prev) => prev.filter((g) => g.id !== gig.id));
+                                    toast({ title: "Draft rejected" });
+                                  })
+                                  .catch(() => toast({ title: "Reject failed", variant: "destructive" }))
+                                  .finally(() => setGigRejecting(null));
+                              }}
+                              disabled={gigRejecting === gig.id || gigPublishing === gig.id}
+                              className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all disabled:opacity-50"
+                              data-testid={`gig-reject-btn-${gig.id}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              {gigRejecting === gig.id ? "…" : "Reject"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setGigPublishing(gig.id);
+                                apiFetch(`/gig-aggregator/drafts/${gig.id}/publish`, { method: "POST" })
+                                  .then((r: { gig: GigDraft; notification: string }) => {
+                                    setGigDrafts((prev) => prev.filter((g) => g.id !== gig.id));
+                                    apiFetch("/gig-aggregator/stats").then((d: { scheduler: GigAggregatorStats }) => setGigAggStats(d.scheduler)).catch(() => {});
+                                    const notifMsg = r.notification === "sent" ? " · Seller notified ✓" : r.notification === "no_email" ? " · No seller email on file" : "";
+                                    toast({ title: "Gig published!", description: `${gig.title.slice(0, 40)}…${notifMsg}` });
+                                  })
+                                  .catch(() => toast({ title: "Publish failed", variant: "destructive" }))
+                                  .finally(() => setGigPublishing(null));
+                              }}
+                              disabled={gigPublishing === gig.id || gigRejecting === gig.id}
+                              className="flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/25 transition-all disabled:opacity-50"
+                              data-testid={`gig-publish-btn-${gig.id}`}
+                            >
+                              <Check className="w-3 h-3" />
+                              {gigPublishing === gig.id ? "Publishing…" : "Publish"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {gigAggStats?.lastRunAt && (
+          <p className="mt-2 text-[11px] text-muted-foreground/50 text-center">
+            Last scrape: {new Date(gigAggStats.lastRunAt).toLocaleString()} · {gigAggStats.totalFetched} total fetched · Cycles: {gigAggStats.cycles}
+          </p>
+        )}
       </div>
 
       {/* Super Admin Support Center */}

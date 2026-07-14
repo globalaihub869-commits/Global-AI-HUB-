@@ -6,3 +6,4 @@ export * from "./threat-events";
 export * from "./vip-emails";
 export * from "./conversions";
 export * from "./jobs";
+export * from "./scraped-gigs";

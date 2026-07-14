@@ -7,6 +7,7 @@ import { bootstrapSupportStore } from "./lib/support-store.js";
 import { bootstrapThreatStore } from "./lib/threat-store.js";
 import { bootstrapVipEmailer } from "./lib/vip-emailer.js";
 import { bootstrapConversionsStore } from "./lib/conversions-store.js";
+import { bootstrapGigAggregatorStats, startGigAggregatorScheduler } from "./lib/gig-aggregator-scheduler.js";
 
 const rawPort = process.env["PORT"];
 
@@ -37,11 +38,14 @@ app.listen(port, (err) => {
     bootstrapVipEmailer(),
     bootstrapConversionsStore(),
     bootstrapJobsFromDb(jobStore),
+    bootstrapGigAggregatorStats(),
   ]).then(() => {
     logger.info("All persistent stores bootstrapped from DB");
   }).catch((err) => {
     logger.error({ err }, "Store bootstrap encountered errors — in-memory stores may be incomplete");
   });
+
+  startGigAggregatorScheduler();
 
   verifyMailTransporter().then((ok) => {
     if (ok) startJobScheduler(jobStore);
