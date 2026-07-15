@@ -1,7 +1,7 @@
 import express, { type Express, type ErrorRequestHandler } from "express";
 import cors from "cors";
 import session from "express-session";
-import * as pinoHttp from "pino-http";
+import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 import { inspectRequest, isBlocked, isIpTrusted } from "./lib/threat-store.js";
@@ -12,8 +12,9 @@ const app: Express = express();
 // Trust the platform's reverse proxy so req.ip reflects the real client IP
 app.set("trust proxy", true);
 
+// Pino-http usage
 app.use(
-  (pinoHttp as any)({
+  pinoHttp({
     logger,
     serializers: {
       req(req: any) {
@@ -23,7 +24,7 @@ app.use(
         return { statusCode: res.statusCode };
       },
     },
-  }),
+  }) as any,
 );
 
 app.use(
