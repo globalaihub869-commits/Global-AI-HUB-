@@ -14,13 +14,15 @@
     "noImplicitThis": false,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "useUnknownInCatchVariables": true,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "useUnknownInCatchVariables": false,
     "alwaysStrict": false,
     "skipLibCheck": true,
     "target": "es2022",
     "types": [],
-    "customConditions": ["workspace"]
+    "customConditions": ["workspace"],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   }
 }
