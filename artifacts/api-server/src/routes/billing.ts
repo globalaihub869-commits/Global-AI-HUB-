@@ -5,6 +5,7 @@ import { eq, desc } from "drizzle-orm";
 import { getUserById, upgradeUserPlan, toPublic } from "../lib/users.js";
 import { PLANS, getPlan } from "../lib/billing-store.js";
 import { publishLiveEvent } from "../lib/live-events.js";
+import { createInvoice } from "../lib/nowpayments.js";
 
 const router: IRouter = Router();
 
@@ -40,6 +41,53 @@ async function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
 router.get("/billing/plans", (_req, res) => {
   res.json({ plans: PLANS });
+});
+
+// ── NOWPayments: create a hosted invoice ─────────────────────────────────────
+router.post("/billing/nowpayments/create-invoice", requireAuth, async (req, res) => {
+  const user = res.locals.currentUser;
+  const { plan } = req.body as { plan?: string };
+
+  if (!plan || !getPlan(plan as never) || plan === "free") {
+    res.status(400).json({ error: "INVALID_PLAN", message: "plan must be pro or enterprise" });
+    return;
+  }
+
+  const planData = getPlan(plan as never)!;
+  const submissionId = randomUUID();
+
+  // Create a pending submission row so the IPN handler can look it up by order_id
+  await db.insert(paymentSubmissionsTable).values({
+    id: submissionId,
+    userId: user.id,
+    userEmail: user.email,
+    userName: user.name,
+    plan,
+    amountUsdt: planData.priceUsdt,
+    txId: submissionId,   // placeholder; real txId comes via IPN
+    status: "pending",
+  });
+
+  const productionDomain = "https://globalaihubco.com";
+  const invoice = await createInvoice({
+    price_amount: planData.priceUsd,
+    price_currency: "usd",
+    order_id: submissionId,
+    order_description: `Global AI Hub — ${planData.name} Plan`,
+    ipn_callback_url: `${productionDomain}/api/ipn`,
+    success_url: `${productionDomain}/dashboard?payment=success`,
+    cancel_url: `${productionDomain}/pricing?payment=cancelled`,
+    is_fixed_rate: false,
+    is_fee_paid_by_user: false,
+  });
+
+  publishLiveEvent({
+    type: "purchase",
+    title: "New Payment Initiated",
+    message: `${user.email} opened NOWPayments checkout for ${plan} plan ($${planData.priceUsd})`,
+  });
+
+  res.status(201).json({ invoiceUrl: invoice.invoice_url, orderId: submissionId });
 });
 
 router.post("/billing/submit-txid", requireAuth, async (req, res) => {

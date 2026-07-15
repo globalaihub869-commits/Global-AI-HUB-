@@ -1,20 +1,20 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Sparkles, Crown, Rocket, ShieldCheck } from "lucide-react";
+import { Check, Sparkles, Crown, Rocket, ShieldCheck, Bitcoin } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth, type PlanTier } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import FlashSaleCountdown from "@/components/pricing/FlashSaleCountdown";
-import CryptoPayModal from "@/components/billing/CryptoPayModal";
+import NowPaymentsModal from "@/components/billing/NowPaymentsModal";
 
 interface PlanCard {
   id: PlanTier;
   name: string;
   icon: typeof Sparkles;
   price: string;
-  amountUsdt: number;
+  amountUsd: number;
   tagline: string;
   features: string[];
   highlight?: boolean;
@@ -26,7 +26,7 @@ const PLAN_CARDS: PlanCard[] = [
     name: "Free",
     icon: Sparkles,
     price: "$0",
-    amountUsdt: 0,
+    amountUsd: 0,
     tagline: "Explore the hub with essential tools",
     features: [
       "Browse AI tool directory",
@@ -40,7 +40,7 @@ const PLAN_CARDS: PlanCard[] = [
     name: "Pro",
     icon: Crown,
     price: "$19",
-    amountUsdt: 19,
+    amountUsd: 19,
     tagline: "For power users who live in the AI ecosystem",
     features: [
       "Everything in Free",
@@ -57,7 +57,7 @@ const PLAN_CARDS: PlanCard[] = [
     name: "Enterprise",
     icon: Rocket,
     price: "$99",
-    amountUsdt: 99,
+    amountUsd: 99,
     tagline: "For teams and organizations scaling with AI",
     features: [
       "Everything in Pro",
@@ -100,10 +100,15 @@ export default function Pricing() {
           Choose Your <span className="text-primary [text-shadow:0_0_20px_rgba(168,85,247,0.5)]">Power Level</span>
         </h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          Pay instantly with USDT via TRC20. No cards, no borders, no delays.
+          Pay instantly with crypto or credit/debit card — powered by NOWPayments. No borders, no delays.
         </p>
-        <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold border border-emerald-400/30 text-emerald-400 bg-emerald-400/10 rounded-full px-2.5 py-1 mt-4">
-          <ShieldCheck className="w-3.5 h-3.5" /> USDT · TRC20 Network
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold border border-emerald-400/30 text-emerald-400 bg-emerald-400/10 rounded-full px-2.5 py-1">
+            <ShieldCheck className="w-3.5 h-3.5" /> Secured by NOWPayments
+          </div>
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold border border-primary/30 text-primary bg-primary/10 rounded-full px-2.5 py-1">
+            <Bitcoin className="w-3.5 h-3.5" /> Crypto &amp; Card Accepted
+          </div>
         </div>
       </div>
 
@@ -124,18 +129,18 @@ export default function Pricing() {
                 data-testid={`card-plan-${plan.id}`}
                 className={`relative h-full flex flex-col overflow-hidden ${
                   plan.highlight
-                    ? "border-yellow-400/40 bg-gradient-to-b from-yellow-500/[0.07] to-[hsl(240,15%,8%)] shadow-[0_0_40px_rgba(234,179,8,0.12)]"
+                    ? "border-primary/40 bg-gradient-to-b from-primary/[0.07] to-[hsl(240,15%,8%)] shadow-[0_0_40px_rgba(168,85,247,0.12)]"
                     : "border-white/8 bg-[hsl(240,15%,8%)]"
                 }`}
               >
                 {plan.highlight && (
-                  <div className="absolute top-0 right-0 text-[10px] font-bold text-black bg-gradient-to-r from-yellow-400 to-yellow-300 px-3 py-1 rounded-bl-lg">
+                  <div className="absolute top-0 right-0 text-[10px] font-bold text-white bg-gradient-to-r from-primary to-cyan-500 px-3 py-1 rounded-bl-lg">
                     MOST POPULAR
                   </div>
                 )}
-                <div className={`absolute -top-10 -left-10 w-40 h-40 rounded-full blur-3xl ${plan.highlight ? "bg-yellow-400/15" : "bg-primary/10"}`} />
+                <div className={`absolute -top-10 -left-10 w-40 h-40 rounded-full blur-3xl ${plan.highlight ? "bg-primary/15" : "bg-primary/10"}`} />
                 <CardHeader className="pb-2 relative">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${plan.highlight ? "bg-yellow-400/15 text-yellow-300" : "bg-primary/15 text-primary"}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${plan.highlight ? "bg-primary/15 text-primary" : "bg-primary/15 text-primary"}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <h3 className="text-xl font-display font-bold text-white">{plan.name}</h3>
@@ -144,12 +149,12 @@ export default function Pricing() {
                 <CardContent className="flex-1 flex flex-col relative">
                   <div className="mb-5">
                     <span className="text-3xl font-display font-bold text-white">{plan.price}</span>
-                    {plan.id !== "free" && <span className="text-muted-foreground text-sm"> / month, in USDT</span>}
+                    {plan.id !== "free" && <span className="text-muted-foreground text-sm"> / month</span>}
                   </div>
                   <ul className="flex flex-col gap-2.5 mb-6 flex-1">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${plan.highlight ? "text-yellow-400" : "text-primary"}`} />
+                        <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${plan.highlight ? "text-primary" : "text-primary"}`} />
                         {f}
                       </li>
                     ))}
@@ -162,13 +167,13 @@ export default function Pricing() {
                       isCurrent
                         ? "bg-white/5 text-muted-foreground cursor-default"
                         : plan.highlight
-                        ? "bg-gradient-to-r from-yellow-500 to-yellow-400 text-black hover:from-yellow-400 hover:to-yellow-300 shadow-[0_0_20px_rgba(234,179,8,0.3)]"
+                        ? "bg-gradient-to-r from-primary to-cyan-500 text-white hover:opacity-90 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
                         : plan.id === "free"
                         ? "bg-white/8 text-white hover:bg-white/12"
                         : "bg-primary hover:bg-primary/90"
                     }`}
                   >
-                    {isCurrent ? "Current Plan" : plan.id === "free" ? "Included by Default" : "Pay with USDT"}
+                    {isCurrent ? "Current Plan" : plan.id === "free" ? "Included by Default" : "Pay with Crypto or Card"}
                   </Button>
                 </CardContent>
               </Card>
@@ -178,10 +183,10 @@ export default function Pricing() {
       </div>
 
       {payingPlan && (
-        <CryptoPayModal
+        <NowPaymentsModal
           plan={payingPlan.id}
           planName={payingPlan.name}
-          amountUsdt={payingPlan.amountUsdt}
+          amountUsd={payingPlan.amountUsd}
           onClose={() => setPayingPlan(null)}
         />
       )}

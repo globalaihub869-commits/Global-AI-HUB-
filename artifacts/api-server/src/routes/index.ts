@@ -16,6 +16,7 @@ import analyticsRouter from "./analytics.js";
 import supportRouter from "./support.js";
 import vipRouter from "./vip.js";
 import gigAggregatorRouter from "./gig-aggregator.js";
+import ipnRouter from "./ipn.js";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(analyticsRouter);
 router.use(supportRouter);
 router.use("/vip", vipRouter);
 router.use(gigAggregatorRouter);
+router.use(ipnRouter);
 
 export default router;
