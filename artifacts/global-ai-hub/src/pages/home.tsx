@@ -408,104 +408,115 @@ export default function Home() {
         )}
 
         {/* ── HERO ── */}
-        <section className="py-20 md:py-28 flex flex-col items-center text-center">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65 }} className="w-full">
+        <section className="py-16 md:py-24" data-testid="hero-section">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
 
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-primary text-sm font-medium mb-8 backdrop-blur-sm shadow-[0_0_18px_rgba(168,85,247,0.2)]" data-testid="hero-badge">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              {isAuthenticated && user?.profileType
-                ? PERSONALIZATION[user.profileType].heroBadge
-                : t("hero.badge")}
-            </div>
+            {/* ── Left: text + CTAs ── */}
+            <motion.div
+              initial={{ opacity: 0, x: -24 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.65 }}
+              className="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-primary text-sm font-medium mb-8 backdrop-blur-sm shadow-[0_0_18px_rgba(168,85,247,0.2)]" data-testid="hero-badge">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                {isAuthenticated && user?.profileType
+                  ? PERSONALIZATION[user.profileType].heroBadge
+                  : t("hero.badge")}
+              </div>
 
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-white tracking-tight mb-6 leading-[1.1]" data-testid="hero-title">
-              {t("hero.h1")}{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary">
-                {t("hero.h2")}
-              </span>
-              <br />
-              <span className="text-3xl md:text-4xl lg:text-5xl text-white/80 font-light">{t("hero.h3")}</span>
-            </h1>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-white tracking-tight mb-6 leading-[1.1]" data-testid="hero-title">
+                {t("hero.h1")}{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary">
+                  {t("hero.h2")}
+                </span>
+                <br />
+                <span className="text-2xl md:text-3xl lg:text-4xl text-white/80 font-light">{t("hero.h3")}</span>
+              </h1>
 
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed" data-testid="hero-subtitle">
-              {t("hero.subtitle")}
-            </p>
+              <p className="text-lg md:text-xl text-muted-foreground max-w-xl mb-10 leading-relaxed" data-testid="hero-subtitle">
+                {t("hero.subtitle")}
+              </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-              <Link href="/tools" data-testid="hero-btn-explore">
-                <Button size="lg" className="h-14 px-8 text-lg bg-primary text-white hover:bg-primary/90 shadow-[0_0_24px_rgba(168,85,247,0.55)] hover:shadow-[0_0_40px_rgba(168,85,247,0.75)] transition-all">
-                  <Sparkles className="mr-2 w-5 h-5" />{t("hero.exploreCta")}
-                </Button>
-              </Link>
-              {isAuthenticated ? (
-                <Link href="/news" data-testid="hero-btn-news">
-                  <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-secondary/40 text-secondary hover:bg-secondary/10 hover:border-secondary/70 transition-all">
-                    <Newspaper className="mr-2 w-5 h-5" />Latest AI News
+              <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mb-10">
+                <Link href="/tools" data-testid="hero-btn-explore">
+                  <Button size="lg" className="h-14 px-8 text-lg bg-primary text-white hover:bg-primary/90 shadow-[0_0_24px_rgba(168,85,247,0.55)] hover:shadow-[0_0_40px_rgba(168,85,247,0.75)] transition-all">
+                    <Sparkles className="mr-2 w-5 h-5" />{t("hero.exploreCta")}
                   </Button>
                 </Link>
-              ) : (
-                <a href="#newsletter" data-testid="hero-btn-newsletter">
-                  <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-secondary/40 text-secondary hover:bg-secondary/10 hover:border-secondary/70 transition-all">
-                    <Mail className="mr-2 w-5 h-5" />{t("hero.newsletterCta")}
-                  </Button>
-                </a>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Media block */}
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.7 }} className="w-full max-w-5xl mx-auto" data-testid="hero-media-block">
-            <div className="relative rounded-2xl overflow-hidden p-[1px] bg-gradient-to-br from-primary/60 via-secondary/30 to-primary/10 shadow-[0_0_60px_rgba(168,85,247,0.3)]">
-              <div className="relative bg-[hsl(240,15%,7%)] rounded-2xl aspect-video flex flex-col items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(168,85,247,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.3) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-[600px] h-[600px] rounded-full border border-primary/10 animate-[ping_3s_ease-in-out_infinite]" />
-                  <div className="absolute w-[400px] h-[400px] rounded-full border border-secondary/10 animate-[ping_3s_ease-in-out_infinite_0.5s]" />
-                  <div className="absolute w-[200px] h-[200px] rounded-full border border-primary/20 animate-[ping_3s_ease-in-out_infinite_1s]" />
-                </div>
-                <div className="absolute top-6 left-6 flex items-center gap-2 bg-black/60 backdrop-blur-md border border-primary/30 rounded-xl px-3 py-2 text-xs text-white shadow-[0_0_12px_rgba(168,85,247,0.3)]">
-                  <Zap className="w-3.5 h-3.5 text-primary" /><span>GPT-4o — 128K context</span>
-                </div>
-                <div className="absolute top-6 right-6 flex items-center gap-2 bg-black/60 backdrop-blur-md border border-secondary/30 rounded-xl px-3 py-2 text-xs text-white shadow-[0_0_12px_rgba(34,211,238,0.3)]">
-                  <Globe className="w-3.5 h-3.5 text-secondary" /><span>180 countries connected</span>
-                </div>
-                <div className="absolute bottom-6 left-6 flex items-center gap-2 bg-black/60 backdrop-blur-md border border-primary/20 rounded-xl px-3 py-2 text-xs text-white">
-                  <Brain className="w-3.5 h-3.5 text-primary" /><span>Claude 3.5 — #1 ranked</span>
-                </div>
-                <div className="absolute bottom-6 right-6 flex items-center gap-2 bg-black/60 backdrop-blur-md border border-secondary/20 rounded-xl px-3 py-2 text-xs text-white">
-                  <Bot className="w-3.5 h-3.5 text-secondary" /><span>1,200 agents deployed today</span>
-                </div>
-                <div className="relative z-10 flex flex-col items-center gap-5">
-                  <div className="w-20 h-20 rounded-full bg-primary/20 border border-primary/50 flex items-center justify-center shadow-[0_0_30px_rgba(168,85,247,0.5)] cursor-pointer hover:scale-110 hover:shadow-[0_0_50px_rgba(168,85,247,0.7)] transition-all group" data-testid="media-play-btn">
-                    <Play className="w-8 h-8 text-white fill-white ml-1 group-hover:text-primary transition-colors" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-white font-display font-semibold text-lg">{t("hero.mediaTitle")}</p>
-                    <p className="text-muted-foreground text-sm mt-1">{t("hero.mediaSubtitle")}</p>
-                  </div>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[hsl(240,15%,7%)] to-transparent" />
+                {isAuthenticated ? (
+                  <Link href="/news" data-testid="hero-btn-news">
+                    <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-secondary/40 text-secondary hover:bg-secondary/10 hover:border-secondary/70 transition-all">
+                      <Newspaper className="mr-2 w-5 h-5" />Latest AI News
+                    </Button>
+                  </Link>
+                ) : (
+                  <a href="#newsletter" data-testid="hero-btn-newsletter">
+                    <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-secondary/40 text-secondary hover:bg-secondary/10 hover:border-secondary/70 transition-all">
+                      <Mail className="mr-2 w-5 h-5" />{t("hero.newsletterCta")}
+                    </Button>
+                  </a>
+                )}
               </div>
-            </div>
-            <p className="mt-3 text-center text-xs text-muted-foreground/50 tracking-wide uppercase">{t("hero.mediaLabel")}</p>
-          </motion.div>
 
-          {/* Stats bar */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55, duration: 0.8 }} className="mt-12 w-full max-w-3xl mx-auto p-[1px] rounded-2xl bg-gradient-to-r from-transparent via-primary/40 to-transparent" data-testid="stats-bar">
-            <div className="bg-background/80 backdrop-blur-xl rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-around gap-8 border border-white/5">
-              {[
-                { val: "2,400+", key: "stats.tools" as const },
-                { val: "180", key: "stats.countries" as const },
-                { val: "50K+", key: "stats.researchers" as const },
-                { val: "12K+", key: "stats.readers" as const },
-              ].map((s) => (
-                <div key={s.key} className="flex flex-col items-center text-center" data-testid={`stat-${s.key}`}>
-                  <div className="text-3xl md:text-4xl font-display font-bold text-white mb-1 [text-shadow:0_0_12px_rgba(255,255,255,0.25)]">{s.val}</div>
-                  <div className="text-xs text-secondary font-medium tracking-widest uppercase">{t(s.key)}</div>
+              {/* Stats row — compact under CTAs on desktop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.6 }}
+                className="flex flex-wrap items-center justify-center lg:justify-start gap-6 pt-4 border-t border-white/8 w-full"
+                data-testid="stats-bar"
+              >
+                {[
+                  { val: "2,400+", key: "stats.tools" as const },
+                  { val: "180", key: "stats.countries" as const },
+                  { val: "50K+", key: "stats.researchers" as const },
+                  { val: "12K+", key: "stats.readers" as const },
+                ].map((s) => (
+                  <div key={s.key} className="flex flex-col items-center lg:items-start" data-testid={`stat-${s.key}`}>
+                    <div className="text-2xl font-display font-bold text-white [text-shadow:0_0_12px_rgba(255,255,255,0.2)]">{s.val}</div>
+                    <div className="text-[10px] text-secondary font-medium tracking-widest uppercase">{t(s.key)}</div>
+                  </div>
+                ))}
+              </motion.div>
+            </motion.div>
+
+            {/* ── Right: banner image ── */}
+            <motion.div
+              initial={{ opacity: 0, x: 24, scale: 0.97 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.7 }}
+              className="flex-shrink-0 w-full max-w-sm md:max-w-md lg:max-w-[420px] mx-auto lg:mx-0"
+              data-testid="hero-media-block"
+            >
+              {/* Outer neon glow border */}
+              <div className="relative p-[1.5px] rounded-3xl bg-gradient-to-br from-primary/70 via-secondary/40 to-primary/20 shadow-[0_0_60px_rgba(168,85,247,0.35),0_0_120px_rgba(168,85,247,0.15)]">
+                <div className="relative rounded-3xl overflow-hidden bg-[hsl(240,15%,6%)]">
+                  <img
+                    src="/global-ai-hub-banner.png"
+                    alt="Global AI Hub — Your Global Ecosystem for AI Innovation"
+                    className="w-full h-auto object-cover block"
+                    loading="eager"
+                    data-testid="hero-banner-img"
+                  />
+                  {/* Floating stat chips — matching the theme */}
+                  <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-secondary/40 rounded-xl px-2.5 py-1.5 text-[11px] text-white shadow-[0_0_10px_rgba(34,211,238,0.3)]">
+                    <Globe className="w-3 h-3 text-secondary flex-shrink-0" /><span>180 countries</span>
+                  </div>
+                  <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-primary/40 rounded-xl px-2.5 py-1.5 text-[11px] text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]">
+                    <Zap className="w-3 h-3 text-primary flex-shrink-0" /><span>2,400+ AI tools</span>
+                  </div>
+                  {/* Bottom fade for smooth blending */}
+                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[hsl(240,15%,6%)] to-transparent pointer-events-none" />
                 </div>
-              ))}
-            </div>
-          </motion.div>
+              </div>
+              {/* Label below image */}
+              <p className="mt-2.5 text-center text-[10px] text-muted-foreground/50 tracking-widest uppercase">
+                {t("hero.mediaLabel")}
+              </p>
+            </motion.div>
+
+          </div>
         </section>
 
         {/* ── CATEGORIES ── */}
