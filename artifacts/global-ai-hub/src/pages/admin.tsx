@@ -15,7 +15,7 @@ import { apiFetch } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import ExecutiveAnalytics from "@/components/admin/ExecutiveAnalytics";
 import LiveRevenueTracker from "@/components/admin/LiveRevenueTracker";
-import HackerIntrusionLog from "@/components/admin/HackerIntrusionLog";
+import SecurityTabPanel from "@/components/admin/SecurityTabPanel";
 import VipEmailerPanel from "@/components/admin/VipEmailerPanel";
 
 interface PlaygroundActivity {
@@ -44,9 +44,9 @@ interface ThreatEvent {
 
 interface ThreatSummary {
   totalThreatsBlocked: number;
-  totalPreBlockWarnings: number;
+  totalCaptchaChallenges: number;
   activeBlockedIps: number;
-  blockedIpList: { ip: string; reason: string; expiresAt: number }[];
+  blockedIpList: { ip: string; reason: string; expiresAt: number; permanent?: boolean }[];
   recentThreats: ThreatEvent[];
 }
 
@@ -819,7 +819,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           {[
             { label: "Threats Auto-Blocked", value: threatSummary?.totalThreatsBlocked ?? 0, icon: Ban },
-            { label: "Pre-Block Warnings", value: threatSummary?.totalPreBlockWarnings ?? 0, icon: BellRing },
+            { label: "CAPTCHA Challenges", value: threatSummary?.totalCaptchaChallenges ?? 0, icon: BellRing },
             { label: "Active Blocked IPs", value: threatSummary?.activeBlockedIps ?? 0, icon: ShieldBan },
             { label: "Defense Coverage", value: "Global", icon: Globe2 },
           ].map((stat) => (
@@ -903,57 +903,8 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Premium Hacker Intrusion Log — severity-filtered, live-updating, color-coded */}
-        <div className="mb-4" data-testid="card-hacker-intrusion-log">
-          <HackerIntrusionLog />
-        </div>
-
-        {/* Full "Hacker Action Log" — every unauthorized action, bad request, and exploit attempt with full detail */}
-        <Card className="bg-[hsl(240,15%,8%)] border-white/8" data-testid="card-hacker-action-log">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ScrollText className="w-4 h-4 text-red-400" /> Hacker Action Log — Full Audit Trail
-            </div>
-          </CardHeader>
-          <CardContent className="max-h-72 overflow-y-auto p-0">
-            {actionLog.length === 0 ? (
-              <p className="text-sm text-muted-foreground/60 py-6 text-center">No unauthorized actions recorded yet.</p>
-            ) : (
-              <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-[hsl(240,15%,8%)] text-muted-foreground/60">
-                  <tr className="text-left">
-                    <th className="px-3 py-2 font-medium">Timestamp</th>
-                    <th className="px-3 py-2 font-medium">IP Address</th>
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {actionLog.map((entry) => (
-                    <tr key={entry.id} data-testid={`action-log-row-${entry.id}`}>
-                      <td className="px-3 py-2 text-muted-foreground/50 whitespace-nowrap">{new Date(entry.createdAt).toLocaleString()}</td>
-                      <td className="px-3 py-2 font-mono text-white whitespace-nowrap">{entry.ip}</td>
-                      <td className="px-3 py-2 text-muted-foreground max-w-xs">
-                        <span className="text-muted-foreground/50">{entry.method} {entry.path}</span> — {entry.action}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        {entry.blocked ? (
-                          <Badge variant="outline" className="text-[9px] uppercase px-1.5 py-0 text-red-300 border-red-400/40 bg-red-400/10">Blocked</Badge>
-                        ) : entry.preBlockWarning ? (
-                          <Badge variant="outline" className="text-[9px] uppercase px-1.5 py-0 text-yellow-300 border-yellow-400/30 bg-yellow-400/10">
-                            Warned ({entry.attemptNumber}/2)
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[9px] uppercase px-1.5 py-0 text-muted-foreground border-white/15">Logged</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </CardContent>
-        </Card>
+        {/* Two-tab security panel: Tab 1 = Threats & Bot Logs, Tab 2 = User Verification Logs */}
+        <SecurityTabPanel />
       </div>
 
       {/* AI Self-Healing System */}
