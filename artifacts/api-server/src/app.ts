@@ -1,7 +1,8 @@
 import express, { type Express, type ErrorRequestHandler } from "express";
 import cors from "cors";
 import session from "express-session";
-import pinoHttp from "pino-http";
+// یہ طریقہ ٹائپ اسکرپٹ کے TS2349 ایرر کو ختم کر دے گا
+import pinoHttp = require("pino-http");
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 import { inspectRequest, isBlocked, isIpTrusted } from "./lib/threat-store.js";
@@ -9,7 +10,7 @@ import { recordRequest } from "./lib/request-stats.js";
 
 const app: Express = express();
 
-// Trust the platform's reverse proxy so req.ip reflects the real client IP
+// Trust the platform's reverse proxy
 app.set("trust proxy", true);
 
 // Pino-http usage
@@ -24,7 +25,7 @@ app.use(
         return { statusCode: res.statusCode };
       },
     },
-  }) as any,
+  }),
 );
 
 app.use(
