@@ -7,14 +7,16 @@ import { inspectRequest, isBlocked, isIpTrusted } from "./lib/threat-store.js";
 import { recordRequest } from "./lib/request-stats.js";
 
 // @ts-ignore
-import pinoHttp = require("pino-http");
+import pinoHttpLib from "pino-http";
 
 const app: Express = express();
-
 app.set("trust proxy", true);
 
+// ہیک: ہم یہاں چیک کر رہے ہیں کہ آیا یہ فنکشن ہے یا ڈیفالٹ میں چھپا ہوا ہے
+const pinoMiddleware = typeof pinoHttpLib === 'function' ? pinoHttpLib : (pinoHttpLib.default || pinoHttpLib);
+
 app.use(
-  pinoHttp({
+  pinoMiddleware({
     logger,
     serializers: {
       req(req: any) {
@@ -40,15 +42,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
   const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
-
   const isOverridePath = req.path === "/api/auth/admin-override";
   if (isOverridePath || isIpTrusted(ip)) {
     next();
     return;
   }
-
   if (isBlocked(ip)) {
-    res.status(403).json({ error: "ACCESS_BLOCKED", message: "This IP has been automatically blocked by the threat defense system" });
+    res.status(403).json({ error: "ACCESS_BLOCKED", message: "This IP has been automatically blocked" });
     return;
   }
   const threat = inspectRequest({
@@ -63,7 +63,7 @@ app.use((req, res, next) => {
       next();
       return;
     }
-    res.status(403).json({ error: "ACCESS_BLOCKED", message: "Blocked by automated threat defense", reason: threat.reason });
+    res.status(403).json({ error: "ACCESS_BLOCKED", message: "Blocked", reason: threat.reason });
     return;
   }
   next();
@@ -99,12 +99,8 @@ app.use((_req, res, next) => {
 app.use("/api", router);
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
-  const status =
-    (err as { status?: number }).status ??
-    (err as { statusCode?: number }).statusCode ??
-    500;
-  const message =
-    err instanceof Error ? err.message : "Internal server error";
+  const status = (err as any).status ?? (err as any).statusCode ?? 500;
+  const message = err instanceof Error ? err.message : "Internal server error";
   logger.error({ err, status }, "Unhandled route error");
   res.status(status).json({ error: "SERVER_ERROR", message });
 };
