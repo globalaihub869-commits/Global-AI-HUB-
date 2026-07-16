@@ -6,28 +6,9 @@ import { logger } from "./lib/logger.js";
 import { inspectRequest, isBlocked, isIpTrusted } from "./lib/threat-store.js";
 import { recordRequest } from "./lib/request-stats.js";
 
-// @ts-ignore
-import pinoHttpLib from "pino-http";
-
 const app: Express = express();
+
 app.set("trust proxy", true);
-
-// ہیک: ہم یہاں چیک کر رہے ہیں کہ آیا یہ فنکشن ہے یا ڈیفالٹ میں چھپا ہوا ہے
-const pinoMiddleware = typeof pinoHttpLib === 'function' ? pinoHttpLib : (pinoHttpLib.default || pinoHttpLib);
-
-app.use(
-  pinoMiddleware({
-    logger,
-    serializers: {
-      req(req: any) {
-        return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
-      },
-      res(res: any) {
-        return { statusCode: res.statusCode };
-      },
-    },
-  })
-);
 
 app.use(
   cors({
