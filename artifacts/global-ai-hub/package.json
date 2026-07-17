@@ -79,6 +79,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
     "react-qr-code": "^2.2.0"
   }
 }
