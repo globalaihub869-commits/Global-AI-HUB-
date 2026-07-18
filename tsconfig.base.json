@@ -9,18 +9,25 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": false,
     "noImplicitReturns": true,
-    "noUnusedLocals": false,
-    "noImplicitAny": false,
+    "noUnusedLocals": false
     "noImplicitThis":false,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
     "strictBindCallApply": true,
     "strictPropertyInitialization":false,
-    "useUnknownInCatchVariables": true,
+    "useUnknownInCatchVariables": true
+    "noImplicitThis": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "useUnknownInCatchVariables": false
     "alwaysStrict": false,
     "skipLibCheck": true,
     "target": "es2022",
     "types": [],
-    "customConditions": ["workspace"]
+    "customConditions": ["workspace"],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   }
 }
